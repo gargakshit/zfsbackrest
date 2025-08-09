@@ -20,6 +20,10 @@ func NewUnrecoverableError(err error) error {
 }
 
 type RetryStrategy interface {
+	New() RetryRunner
+}
+
+type RetryRunner interface {
 	RetryAfter(err error) (time.Duration, error)
 }
 
@@ -27,6 +31,10 @@ type RetryExponentialBackoffConfig struct {
 	MaxRetries     int
 	WaitIncrements time.Duration
 	MaxWait        time.Duration
+}
+
+func (c RetryExponentialBackoffConfig) New() RetryRunner {
+	return NewRetryExponentialBackoff(c)
 }
 
 type RetryExponentialBackoff struct {
@@ -49,10 +57,7 @@ func (r *RetryExponentialBackoff) RetryAfter(err error) (time.Duration, error) {
 		return 0, RetryAttemptsExhausted
 	}
 
-	wait := r.Config.WaitIncrements * time.Duration(r.currentRetry)
-	if wait > r.Config.MaxWait {
-		wait = r.Config.MaxWait
-	}
+	wait := min(r.Config.WaitIncrements*(1<<time.Duration(r.currentRetry)), r.Config.MaxWait)
 
 	slog.Info("Retrying after", "wait", wait, "currentRetry", r.currentRetry)
 	r.currentRetry++

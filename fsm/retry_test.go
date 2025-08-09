@@ -51,7 +51,8 @@ func TestRetryExponentialBackoff_Sequence_NoCap(t *testing.T) {
 		waits = append(waits, d)
 	}
 
-	want := []time.Duration{0, 100 * time.Millisecond, 200 * time.Millisecond, 300 * time.Millisecond, 400 * time.Millisecond}
+	// Exponential: 1x, 2x, 4x, 8x, then capped at 1s
+	want := []time.Duration{100 * time.Millisecond, 200 * time.Millisecond, 400 * time.Millisecond, 800 * time.Millisecond, 1 * time.Second}
 	if len(waits) != len(want) {
 		t.Fatalf("waits length mismatch: got %d want %d", len(waits), len(want))
 	}
@@ -78,7 +79,8 @@ func TestRetryExponentialBackoff_Sequence_WithCap(t *testing.T) {
 		waits = append(waits, d)
 	}
 
-	want := []time.Duration{0, 100 * time.Millisecond, 200 * time.Millisecond, 250 * time.Millisecond, 250 * time.Millisecond, 250 * time.Millisecond}
+	// Exponential then capped at 250ms
+	want := []time.Duration{100 * time.Millisecond, 200 * time.Millisecond, 250 * time.Millisecond, 250 * time.Millisecond, 250 * time.Millisecond, 250 * time.Millisecond}
 	if len(waits) != len(want) {
 		t.Fatalf("waits length mismatch: got %d want %d", len(waits), len(want))
 	}
@@ -102,13 +104,13 @@ func TestRetryExponentialBackoff_UnrecoverableDoesNotAdvance(t *testing.T) {
 		t.Fatalf("expected unrecoverable error, got %v", err)
 	}
 
-	// Next call should still be the first retry (wait 0)
+	// Next call should still be the first retry (wait = increment)
 	d2, err2 := r.RetryAfter(nil)
 	if err2 != nil {
 		t.Fatalf("unexpected error: %v", err2)
 	}
-	if d2 != 0 {
-		t.Fatalf("expected 0 duration after unrecoverable (no advance), got %v", d2)
+	if d2 != 100*time.Millisecond {
+		t.Fatalf("expected initial increment after unrecoverable (no advance), got %v", d2)
 	}
 }
 
