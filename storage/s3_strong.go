@@ -16,7 +16,7 @@ import (
 // data and ensure integrity.
 type S3StrongStorage struct {
 	mc         *minio.Client
-	encryption Encryption
+	encryption encryption.Encryption
 }
 
 func NewS3StrongStorage(ctx context.Context, s3Config *config.S3Store, encryptionConfig *config.Encryption) (*S3StrongStorage, error) {
