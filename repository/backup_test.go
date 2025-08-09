@@ -563,3 +563,244 @@ func TestBackupExpired(t *testing.T) {
 		})
 	}
 }
+
+func TestLatestFull(t *testing.T) {
+	now := time.Now()
+	earlier := now.Add(-2 * time.Hour)
+	mid := now.Add(-1 * time.Hour)
+	later := now.Add(-30 * time.Minute)
+
+	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
+		id := ulid.Make()
+		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+	}
+
+	tests := []struct {
+		name   string
+		build  func() Backups
+		wantID *ulid.ULID
+	}{
+		{
+			name:   "empty -> nil",
+			build:  func() Backups { return Backups{} },
+			wantID: nil,
+		},
+		{
+			name: "only non-full -> nil",
+			build: func() Backups {
+				d1, id1 := mk(BackupTypeDiff, earlier)
+				i1, id2 := mk(BackupTypeIncr, later)
+				return Backups{id1: d1, id2: i1}
+			},
+			wantID: nil,
+		},
+		{
+			name: "single full -> that id",
+			build: func() Backups {
+				f1, id := mk(BackupTypeFull, mid)
+				return Backups{id: f1}
+			},
+			wantID: func() *ulid.ULID { id := ulid.Make(); return &id }(), // placeholder, replaced below
+		},
+		{
+			name: "multiple full -> latest by CreatedAt",
+			build: func() Backups {
+				fOld, idOld := mk(BackupTypeFull, earlier)
+				fMid, idMid := mk(BackupTypeFull, mid)
+				fNew, idNew := mk(BackupTypeFull, later)
+				x, idx := mk(BackupTypeDiff, now) // ensure mixed types ignored
+				return Backups{idOld: fOld, idMid: fMid, idNew: fNew, idx: x}
+			},
+			wantID: func() *ulid.ULID { id := ulid.Make(); return &id }(), // placeholder, replaced below
+		},
+		{
+			name: "mixed types with one full -> that full",
+			build: func() Backups {
+				d, idd := mk(BackupTypeDiff, later)
+				i, idi := mk(BackupTypeIncr, later)
+				f, idf := mk(BackupTypeFull, mid)
+				return Backups{idd: d, idi: i, idf: f}
+			},
+			wantID: func() *ulid.ULID { id := ulid.Make(); return &id }(), // placeholder, replaced below
+		},
+	}
+
+	// Populate expected IDs dynamically since we generate inside builders
+	for ti := range tests {
+		bset := tests[ti].build()
+		got := bset.LatestFull()
+		var expected *ulid.ULID
+		switch tests[ti].name {
+		case "single full -> that id":
+			for id, b := range bset {
+				if b.Type == BackupTypeFull {
+					idCopy := id
+					expected = &idCopy
+				}
+			}
+		case "multiple full -> latest by CreatedAt":
+			var want *Backup
+			var wantID ulid.ULID
+			for id, b := range bset {
+				if b.Type != BackupTypeFull {
+					continue
+				}
+				if want == nil || want.CreatedAt.Before(b.CreatedAt) {
+					want = b
+					wantID = id
+				}
+			}
+			expected = &wantID
+		case "mixed types with one full -> that full":
+			for id, b := range bset {
+				if b.Type == BackupTypeFull {
+					idCopy := id
+					expected = &idCopy
+				}
+			}
+		}
+
+		if (got == nil) != (expected == nil) {
+			t.Fatalf("%s: mismatch nilness: got %v wantID nil? %v", tests[ti].name, got == nil, expected == nil)
+		}
+		if got == nil {
+			continue
+		}
+		if got.ID != *expected {
+			t.Fatalf("%s: expected latest full %v, got %v", tests[ti].name, *expected, got.ID)
+		}
+	}
+}
+
+func TestLatestDiff(t *testing.T) {
+	now := time.Now()
+	earlier := now.Add(-2 * time.Hour)
+	later := now.Add(-10 * time.Minute)
+
+	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
+		id := ulid.Make()
+		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+	}
+
+	tests := []struct {
+		name   string
+		build  func() Backups
+		wantID *ulid.ULID
+	}{
+		{name: "empty -> nil", build: func() Backups { return Backups{} }},
+		{
+			name: "only non-diff -> nil",
+			build: func() Backups {
+				f, idf := mk(BackupTypeFull, earlier)
+				i, idi := mk(BackupTypeIncr, later)
+				return Backups{idf: f, idi: i}
+			},
+		},
+		{
+			name: "single diff -> that id",
+			build: func() Backups {
+				d, id := mk(BackupTypeDiff, earlier)
+				return Backups{id: d}
+			},
+		},
+		{
+			name: "multiple diff -> latest by CreatedAt",
+			build: func() Backups {
+				d1, id1 := mk(BackupTypeDiff, earlier)
+				d2, id2 := mk(BackupTypeDiff, later)
+				f, idf := mk(BackupTypeFull, now)
+				return Backups{id1: d1, id2: d2, idf: f}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		bs := tc.build()
+		got := bs.LatestDiff()
+		// compute expected
+		var want *Backup
+		for _, b := range bs {
+			if b.Type != BackupTypeDiff {
+				continue
+			}
+			if want == nil || want.CreatedAt.Before(b.CreatedAt) {
+				want = b
+			}
+		}
+		if (got == nil) != (want == nil) {
+			t.Fatalf("%s: mismatch nilness: got %v want %v", tc.name, got == nil, want == nil)
+		}
+		if got == nil {
+			continue
+		}
+		if got.ID != want.ID {
+			t.Fatalf("%s: expected %v, got %v", tc.name, want.ID, got.ID)
+		}
+	}
+}
+
+func TestLatestIncr(t *testing.T) {
+	now := time.Now()
+	earlier := now.Add(-3 * time.Hour)
+	later := now.Add(-5 * time.Minute)
+
+	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
+		id := ulid.Make()
+		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+	}
+
+	tests := []struct {
+		name  string
+		build func() Backups
+	}{
+		{name: "empty -> nil", build: func() Backups { return Backups{} }},
+		{
+			name: "only non-incr -> nil",
+			build: func() Backups {
+				f, idf := mk(BackupTypeFull, earlier)
+				d, idd := mk(BackupTypeDiff, later)
+				return Backups{idf: f, idd: d}
+			},
+		},
+		{
+			name: "single incr -> that id",
+			build: func() Backups {
+				i, id := mk(BackupTypeIncr, later)
+				return Backups{id: i}
+			},
+		},
+		{
+			name: "multiple incr -> latest by CreatedAt",
+			build: func() Backups {
+				i1, id1 := mk(BackupTypeIncr, earlier)
+				i2, id2 := mk(BackupTypeIncr, later)
+				f, idf := mk(BackupTypeFull, now)
+				return Backups{id1: i1, id2: i2, idf: f}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		bs := tc.build()
+		got := bs.LatestIncr()
+		// compute expected
+		var want *Backup
+		for _, b := range bs {
+			if b.Type != BackupTypeIncr {
+				continue
+			}
+			if want == nil || want.CreatedAt.Before(b.CreatedAt) {
+				want = b
+			}
+		}
+		if (got == nil) != (want == nil) {
+			t.Fatalf("%s: mismatch nilness: got %v want %v", tc.name, got == nil, want == nil)
+		}
+		if got == nil {
+			continue
+		}
+		if got.ID != want.ID {
+			t.Fatalf("%s: expected %v, got %v", tc.name, want.ID, got.ID)
+		}
+	}
+}

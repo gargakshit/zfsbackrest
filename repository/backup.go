@@ -137,3 +137,45 @@ func (bs Backups) Expired(id ulid.ULID, expiry *config.Expiry) (bool, error) {
 		return false, ErrUnknownBackupType
 	}
 }
+
+// LatestFull returns the latest full backup.
+func (bs Backups) LatestFull() *Backup {
+	var backup *Backup
+	for _, b := range bs {
+		if b.Type == BackupTypeFull {
+			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
+				backup = b
+			}
+		}
+	}
+
+	return backup
+}
+
+// LatestDiff returns the latest diff backup.
+func (bs Backups) LatestDiff() *Backup {
+	var backup *Backup
+	for _, b := range bs {
+		if b.Type == BackupTypeDiff {
+			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
+				backup = b
+			}
+		}
+	}
+
+	return backup
+}
+
+// LatestIncr returns the latest incremental backup.
+func (bs Backups) LatestIncr() *Backup {
+	var backup *Backup
+	for _, b := range bs {
+		if b.Type == BackupTypeIncr {
+			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
+				backup = b
+			}
+		}
+	}
+
+	return backup
+}
