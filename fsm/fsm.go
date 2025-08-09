@@ -50,6 +50,11 @@ func NewFSM[StateT comparable, ActionT comparable](
 }
 
 func (f *FSM[StateT, ActionT]) Run(action ActionT) error {
+	if f.current.Terminal {
+		slog.Error("FSM is in a terminal state, cannot run action", "name", f.name, "action", action)
+		return fmt.Errorf("FSM is in a terminal state, cannot run action %v", action)
+	}
+
 	slog.Debug("Running FSM", "name", f.name, "action", action)
 
 	transition, ok := f.transitions[action]
