@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -19,7 +20,7 @@ func (s State[T]) String() string {
 type Transition[StateT comparable] struct {
 	From          State[StateT]
 	To            State[StateT]
-	Run           func() error
+	Run           func(ctx context.Context) error
 	RetryStrategy RetryStrategy
 }
 
@@ -51,7 +52,7 @@ func NewFSM[StateT comparable, ActionT comparable](
 	}
 }
 
-func (f *FSM[StateT, ActionT]) Run(action ActionT) error {
+func (f *FSM[StateT, ActionT]) Run(ctx context.Context, action ActionT) error {
 	slog.Debug("Acquiring FSM lock", "name", f.name)
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -84,7 +85,14 @@ func (f *FSM[StateT, ActionT]) Run(action ActionT) error {
 	}
 
 	for {
-		err := transition.Run()
+		select {
+		case <-ctx.Done():
+			slog.Info("Context cancelled, cancelling FSM transition", "name", f.name, "action", action)
+			return ctx.Err()
+		default:
+		}
+
+		err := transition.Run(ctx)
 		if err == nil {
 			slog.Debug("Transition completed successfully", "name", f.name, "action", action, "from", f.current, "to", transition.To)
 			f.current = transition.To
@@ -92,6 +100,13 @@ func (f *FSM[StateT, ActionT]) Run(action ActionT) error {
 		}
 
 		slog.Debug("FSM transition failed, checking if we can retry", "name", f.name, "action", action, "error", err)
+
+		select {
+		case <-ctx.Done():
+			slog.Error("Context cancelled, cancelling FSM retry", "name", f.name, "action", action)
+			return ctx.Err()
+		default:
+		}
 
 		wait, err := retryRunner.RetryAfter(err)
 		if err != nil {

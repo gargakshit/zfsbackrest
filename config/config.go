@@ -10,6 +10,7 @@ type Config struct {
 	S3         S3Store
 	Repository Repository
 	Debug      bool
+	Encryption Encryption
 }
 
 func LoadConfig(v *viper.Viper, path string) (*Config, error) {
