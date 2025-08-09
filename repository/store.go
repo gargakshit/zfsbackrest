@@ -6,6 +6,36 @@ import (
 	"time"
 )
 
+// All application flows should use FSMs and should be idempotent.
+
+// Backup flow:
+// 1. Create a backup manifest (struct Backup) by finding the latest "parent backup".
+//   - Nothing for full backups.
+//   - Latest full for diff backups.
+//   - Latest diff for incremental backups.
+// 2. Commit the store.
+// 3. Write that manifest to the orphans.
+// 4. Push the snapshot to s3.
+// 5. Push the snapshot checksum to s3.
+// 6. Move that backup out of orphans to actual backups.
+// 7. Commit the store.
+
+// Expiry flow:
+// 1. Iterate over all backups.
+// 2. Check if the backup is expired.
+// 3. If it is, move it to the orphan list.
+// 4. Commit the store.
+// 5. Delete those backups from the underlying storage.
+// 6. Remove them from the orphans list.
+// 7. Commit the store.
+
+// Full Reconciliation flow:
+// 1. Load the store.
+// 2. Validate the store.
+// 3. Delete the backups from the orphan list that are "safe to delete".
+// 4. Commit the store.
+// 5. Start the expiry sequence.
+
 // Store is the main struct that contains the backups and orphans.
 // It is made to be stored in a single file, usually on the same filesystem as
 // the zfsbackrest repository.

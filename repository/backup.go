@@ -42,6 +42,8 @@ var (
 
 // Validate validates the backup identified by id and its parent chain.
 func (bs Backups) Validate(id ulid.ULID) error {
+	slog.Debug("Validating backup", "backup", id)
+
 	b, ok := bs[id]
 	if !ok {
 		slog.Error("Backup validation failed", "backup", id, "error", ErrParentBackupNotFound.Error())
@@ -115,6 +117,8 @@ func (bs Backups) Validate(id ulid.ULID) error {
 // Expired returns true if the backup is expired.
 // Backups expire when their time is lapsed, or when their parent is expired.
 func (bs Backups) Expired(id ulid.ULID, expiry *config.Expiry) (bool, error) {
+	slog.Debug("Checking if backup is expired", "backup", id)
+
 	if err := bs.Validate(id); err != nil {
 		return false, err
 	}
