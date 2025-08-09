@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"bytes"
 	"errors"
 	"log/slog"
 	"time"
@@ -35,6 +36,7 @@ var (
 	ErrIncrBackupNoParent      = errors.New("incremental backup does not depend on a parent backup")
 	ErrIncrBackupParentNotDiff = errors.New("incremental backup depends on a parent backup that is not a diff backup")
 	ErrUnknownBackupType       = errors.New("unknown backup type")
+	ErrBackupIDMismatch        = errors.New("backup ID mismatch")
 	ErrParentBackupNotFound    = errors.New("parent backup not found")
 )
 
@@ -44,6 +46,11 @@ func (bs Backups) Validate(id ulid.ULID) error {
 	if !ok {
 		slog.Error("Backup validation failed", "backup", id, "error", ErrParentBackupNotFound.Error())
 		return ErrParentBackupNotFound
+	}
+
+	if !bytes.Equal(b.ID[:], id[:]) {
+		slog.Error("Backup validation failed", "backup", id, "error", ErrBackupIDMismatch.Error())
+		return ErrBackupIDMismatch
 	}
 
 	if b.CreatedAt.After(time.Now()) {
