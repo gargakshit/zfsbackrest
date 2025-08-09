@@ -1,0 +1,13 @@
+debug = true
+
+[s3]
+endpoint = "todo"
+bucket = "todo"
+key = "todo"
+secret = "todo"
+region = "todo"
+
+[repository.expiry]
+full = "336h" # 14 days
+diff = "120h" # 5 days
+incr = "24h" # 1 day
