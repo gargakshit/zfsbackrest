@@ -72,9 +72,43 @@ func (s *S3StrongStorage) OpenSnapshotWriteStream(
 	ctx context.Context,
 	dataset string,
 	snapshot string,
+	size int64,
 	encryption encryption.Encryption,
 ) (io.WriteCloser, error) {
-	panic("not implemented")
+	filePath := s.filePath(dataset, snapshot)
+
+	pr, pw := io.Pipe()
+
+	// Kick off the upload that consumes from the pipe reader.
+	done := make(chan error)
+	go func() {
+		defer close(done)
+		_, err := s.mc.PutObject(ctx, s.s3Config.Bucket, filePath, pr, size, minio.PutObjectOptions{ContentType: "application/octet-stream"})
+		if err != nil {
+			slog.Error("Failed to upload snapshot", "path", filePath, "error", err)
+			// Ensure the writer side sees an error
+			_ = pr.CloseWithError(err)
+			done <- err
+			return
+		}
+		done <- nil
+	}()
+
+	// Wrap the pipe writer with encryption so callers write plaintext
+	encWriter, err := encryption.EncryptedWriter(pw)
+	if err != nil {
+		// If encryption setup fails, close the pipe and return the error
+		_ = pw.Close()
+		return nil, err
+	}
+
+	// Return a WriteCloser that forwards writes to the encrypted writer and
+	// waits for the upload to complete on Close.
+	return &s3EncryptedWriteCloser{
+		enc:  encWriter,
+		pw:   pw,
+		done: done,
+	}, nil
 }
 
 func (s *S3StrongStorage) DeleteSnapshot(
@@ -95,4 +129,27 @@ func (s *S3StrongStorage) DeleteSnapshot(
 
 func (s *S3StrongStorage) filePath(dataset string, snapshot string) string {
 	return path.Join("snaps", dataset, snapshot)
+}
+
+type s3EncryptedWriteCloser struct {
+	enc  io.WriteCloser
+	pw   *io.PipeWriter
+	done chan error
+}
+
+func (w *s3EncryptedWriteCloser) Write(p []byte) (int, error) {
+	return w.enc.Write(p)
+}
+
+func (w *s3EncryptedWriteCloser) Close() error {
+	// Close the encryption stream first to flush and finalize
+	encErr := w.enc.Close()
+	// Ensure the pipe writer is closed to signal EOF to the reader
+	_ = w.pw.Close()
+	// Wait for the upload goroutine to finish and capture its error
+	putErr := <-w.done
+	if encErr != nil {
+		return encErr
+	}
+	return putErr
 }
