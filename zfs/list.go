@@ -37,7 +37,7 @@ func (z *ZFS) ListDatasets(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	lines := strings.Split(string(stdout), "\n")
+	lines := strings.Split(strings.TrimSpace(string(stdout)), "\n")
 	datasets := make([]string, 0, len(lines))
 	for _, line := range lines {
 		if line == "" {

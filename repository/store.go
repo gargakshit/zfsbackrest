@@ -77,7 +77,7 @@ func LoadStore(ctx context.Context, storage storage.StrongStore) (*Store, error)
 	return &store, nil
 }
 
-func (s *Store) SaveStore(ctx context.Context, storage storage.StrongStore) error {
+func (s *Store) Save(ctx context.Context, storage storage.StrongStore) error {
 	slog.Debug("Saving store", "store", s)
 
 	if err := s.Validate(); err != nil {

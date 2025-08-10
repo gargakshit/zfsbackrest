@@ -2,11 +2,14 @@ package repository
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gargakshit/zfsbackrest/config"
+	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -190,4 +193,49 @@ func (bs Backups) LatestIncr() *Backup {
 	}
 
 	return backup
+}
+
+func (bs Backups) GetParent(typ BackupType) (*Backup, error) {
+	switch typ {
+	case BackupTypeFull:
+		slog.Debug("Parent not needed for full backup")
+		return nil, nil
+
+	case BackupTypeDiff:
+		slog.Debug("Getting parent for diff backup (full backup)")
+		latestFull := bs.LatestFull()
+		if latestFull == nil {
+			slog.Error("Parent not found for diff backup", "error", ErrParentBackupNotFound.Error())
+			return nil, ErrParentBackupNotFound
+		}
+
+		return latestFull, nil
+
+	case BackupTypeIncr:
+		slog.Debug("Getting parent for incr backup (diff backup)")
+		latestDiff := bs.LatestDiff()
+		if latestDiff == nil {
+			slog.Error("Parent not found for incr backup", "error", ErrParentBackupNotFound.Error())
+			return nil, ErrParentBackupNotFound
+		}
+
+		return latestDiff, nil
+	}
+
+	return nil, ErrUnknownBackupType
+}
+
+func (s *Store) AddBackup(ctx context.Context, backup Backup) error {
+	if existingBackup, ok := s.Backups[backup.ID]; ok {
+		if cmp.Equal(existingBackup, &backup) {
+			slog.Debug("Backup already exists, skipping addition (idempotency)", "backup", backup.ID)
+			return nil
+		}
+
+		return fmt.Errorf("backup %s already exists", backup.ID)
+	}
+
+	s.Backups[backup.ID] = &backup
+
+	return nil
 }

@@ -1,13 +1,29 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+	"log/slog"
+
+	"github.com/gargakshit/zfsbackrest/zfsbackrest"
+	"github.com/spf13/cobra"
+)
 
 var detailCmd = &cobra.Command{
 	Use:   "detail",
 	Short: "Show details about a backup repository",
 	Long:  `Show details about a backup repository.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return cmd.Help()
+		slog.Debug("Showing details about backup repository")
+
+		slog.Debug("Creating runner from existing repository", "config", cfg)
+		runner, err := zfsbackrest.NewRunnerFromExistingRepository(cmd.Context(), cfg)
+		if err != nil {
+			return fmt.Errorf("failed to create runner: %w", err)
+		}
+
+		_ = runner
+
+		return nil
 	},
 }
 

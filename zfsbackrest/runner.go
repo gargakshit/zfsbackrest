@@ -95,7 +95,7 @@ func NewRunnerWithNewRepository(ctx context.Context, config *config.Config, encr
 		"bucket", config.Repository.S3.Bucket,
 	)
 
-	if err := store.SaveStore(ctx, storage); err != nil {
+	if err := store.Save(ctx, storage); err != nil {
 		slog.Error("Failed to save store content", "error", err)
 		return nil, fmt.Errorf("failed to save store content: %w", err)
 	}

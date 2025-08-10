@@ -8,43 +8,44 @@ import (
 	"time"
 )
 
-type State[T comparable] struct {
-	Name     T
+type State[T comparable, D any] struct {
+	ID       T
+	Data     *D
 	Terminal bool
 }
 
-func (s State[T]) String() string {
-	return fmt.Sprintf("FSM state {%v, terminal: %v}", s.Name, s.Terminal)
+func (s State[T, D]) String() string {
+	return fmt.Sprintf("FSM state {%v, data: %v, terminal: %v}", s.ID, s.Data, s.Terminal)
 }
 
-type Transition[StateT comparable] struct {
-	From          State[StateT]
-	To            State[StateT]
-	Run           func(ctx context.Context) error
+type Transition[StateT comparable, DataT any] struct {
+	From          StateT
+	To            StateT
+	Run           func(ctx context.Context, data *DataT) error
 	RetryStrategy RetryStrategy
 }
 
-func (t Transition[StateT]) String() string {
+func (t Transition[StateT, DataT]) String() string {
 	return fmt.Sprintf("FSM transition {%v -> %v}", t.From, t.To)
 }
 
-type FSM[StateT comparable, ActionT comparable] struct {
+type FSM[StateT comparable, ActionT comparable, DataT any] struct {
 	name                 string
 	defaultRetryStrategy RetryStrategy
-	transitions          map[ActionT]Transition[StateT]
-	current              State[StateT]
+	transitions          map[ActionT]Transition[StateT, DataT]
+	current              State[StateT, DataT]
 	lock                 sync.RWMutex
 }
 
-func NewFSM[StateT comparable, ActionT comparable](
+func NewFSM[StateT comparable, ActionT comparable, DataT any](
 	name string,
-	initialState State[StateT],
-	transitions map[ActionT]Transition[StateT],
+	initialState State[StateT, DataT],
+	transitions map[ActionT]Transition[StateT, DataT],
 	defaultRetryStrategy RetryStrategy,
-) *FSM[StateT, ActionT] {
+) *FSM[StateT, ActionT, DataT] {
 	slog.Debug("Creating FSM", "initialState", initialState, "transitions", transitions)
 
-	return &FSM[StateT, ActionT]{
+	return &FSM[StateT, ActionT, DataT]{
 		name:                 name,
 		transitions:          transitions,
 		current:              initialState,
@@ -52,7 +53,7 @@ func NewFSM[StateT comparable, ActionT comparable](
 	}
 }
 
-func (f *FSM[StateT, ActionT]) Run(ctx context.Context, action ActionT) error {
+func (f *FSM[StateT, ActionT, DataT]) Run(ctx context.Context, action ActionT) error {
 	slog.Debug("Acquiring FSM lock", "name", f.name)
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -79,7 +80,7 @@ func (f *FSM[StateT, ActionT]) Run(ctx context.Context, action ActionT) error {
 	retryRunner := retryStrategy.New()
 
 	// Validate that the transition is valid
-	if transition.From != f.current {
+	if transition.From != f.current.ID {
 		slog.Error("Invalid transition", "name", f.name, "action", action, "from", f.current, "to", transition.From)
 		return fmt.Errorf("invalid transition from %v to %v", f.current, transition.From)
 	}
@@ -92,10 +93,14 @@ func (f *FSM[StateT, ActionT]) Run(ctx context.Context, action ActionT) error {
 		default:
 		}
 
-		err := transition.Run(ctx)
+		err := transition.Run(ctx, f.current.Data)
 		if err == nil {
 			slog.Debug("Transition completed successfully", "name", f.name, "action", action, "from", f.current, "to", transition.To)
-			f.current = transition.To
+			f.current = State[StateT, DataT]{
+				ID:       transition.To,
+				Data:     f.current.Data,
+				Terminal: f.current.Terminal,
+			}
 			return nil
 		}
 
@@ -119,7 +124,21 @@ func (f *FSM[StateT, ActionT]) Run(ctx context.Context, action ActionT) error {
 	}
 }
 
-func (f *FSM[StateT, ActionT]) CurrentState() State[StateT] {
+func (f *FSM[StateT, ActionT, DataT]) RunSequence(ctx context.Context, actions ...ActionT) error {
+	slog.Debug("Running FSM sequence", "name", f.name, "actions", actions)
+
+	for _, action := range actions {
+		slog.Debug("Running FSM action", "name", f.name, "action", action)
+		err := f.Run(ctx, action)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (f *FSM[StateT, ActionT, DataT]) CurrentState() State[StateT, DataT] {
 	slog.Debug("Getting current state", "name", f.name)
 	f.lock.RLock()
 	defer f.lock.RUnlock()
@@ -127,7 +146,7 @@ func (f *FSM[StateT, ActionT]) CurrentState() State[StateT] {
 	return f.current
 }
 
-func (f *FSM[StateT, ActionT]) String() string {
+func (f *FSM[StateT, ActionT, DataT]) String() string {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 
