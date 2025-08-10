@@ -7,11 +7,10 @@ import (
 )
 
 type Config struct {
-	S3                S3Store
-	Repository        Repository
-	Debug             bool
-	UploadConcurrency UploadConcurrency
-	ZFS               ZFS
+	Repository        Repository        `mapstructure:"repository"`
+	Debug             bool              `mapstructure:"debug"`
+	UploadConcurrency UploadConcurrency `mapstructure:"upload_concurrency"`
+	ZFS               ZFS               `mapstructure:"zfs"`
 }
 
 func LoadConfig(v *viper.Viper, path string) (*Config, error) {

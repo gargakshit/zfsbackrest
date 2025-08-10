@@ -1,9 +1,9 @@
 package config
 
 type Encryption struct {
-	Age Age `json:"age"`
+	Age Age `mapstructure:"age"`
 }
 
 type Age struct {
-	RecipientPublicKey string `json:"recipient_public_key"`
+	RecipientPublicKey string `mapstructure:"recipient_public_key"`
 }

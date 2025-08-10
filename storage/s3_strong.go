@@ -22,6 +22,8 @@ type S3StrongStorage struct {
 }
 
 func NewS3StrongStorage(ctx context.Context, s3Config *config.S3Store) (*S3StrongStorage, error) {
+	slog.Debug("Creating S3 strong storage", "s3Config", s3Config)
+
 	minioClient, err := minio.New(s3Config.Endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(s3Config.Key, s3Config.Secret, ""),
 		Secure: true,
@@ -41,6 +43,8 @@ func NewS3StrongStorage(ctx context.Context, s3Config *config.S3Store) (*S3Stron
 var storePath = "zfsbackrest_store_v1.json"
 
 func (s *S3StrongStorage) LoadStoreContent(ctx context.Context) ([]byte, error) {
+	slog.Debug("Loading store content", "bucket", s.s3Config.Bucket, "path", storePath)
+
 	reader, err := s.mc.GetObject(ctx, s.s3Config.Bucket, storePath, minio.GetObjectOptions{})
 	if err != nil {
 		slog.Error("Failed to get store content", "error", err)
@@ -59,6 +63,8 @@ func (s *S3StrongStorage) LoadStoreContent(ctx context.Context) ([]byte, error) 
 }
 
 func (s *S3StrongStorage) SaveStoreContent(ctx context.Context, content []byte) error {
+	slog.Debug("Saving store content", "bucket", s.s3Config.Bucket, "path", storePath)
+
 	_, err := s.mc.PutObject(ctx, s.s3Config.Bucket, storePath, bytes.NewReader(content), int64(len(content)), minio.PutObjectOptions{})
 	if err != nil {
 		slog.Error("Failed to save store content", "error", err)
@@ -76,6 +82,7 @@ func (s *S3StrongStorage) OpenSnapshotWriteStream(
 	encryption encryption.Encryption,
 ) (io.WriteCloser, error) {
 	filePath := s.filePath(dataset, snapshot)
+	slog.Debug("Opening snapshot write stream", "bucket", s.s3Config.Bucket, "path", filePath)
 
 	pr, pw := io.Pipe()
 
@@ -118,6 +125,8 @@ func (s *S3StrongStorage) DeleteSnapshot(
 	encryption encryption.Encryption,
 ) error {
 	filePath := s.filePath(dataset, snapshot)
+	slog.Debug("Deleting snapshot", "bucket", s.s3Config.Bucket, "path", filePath)
+
 	err := s.mc.RemoveObject(ctx, s.s3Config.Bucket, filePath, minio.RemoveObjectOptions{})
 	if err != nil {
 		slog.Error("Failed to delete snapshot", "error", err)

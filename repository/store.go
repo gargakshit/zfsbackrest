@@ -1,11 +1,15 @@
 package repository
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gargakshit/zfsbackrest/config"
+	"github.com/gargakshit/zfsbackrest/storage"
 )
 
 // All application flows should use FSMs and should be idempotent.
@@ -42,11 +46,57 @@ import (
 // It is made to be stored in a single file, usually on the same filesystem as
 // the zfsbackrest repository.
 type Store struct {
-	Version    int               `json:"version"`
-	CreatedAt  time.Time         `json:"created_at"`
-	Backups    Backups           `json:"backups"`
-	Orphans    Orphans           `json:"orphans"`
-	Encryption config.Encryption `json:"encryption"`
+	Version         int               `json:"version"`
+	CreatedAt       time.Time         `json:"created_at"`
+	Backups         Backups           `json:"backups"`
+	Orphans         Orphans           `json:"orphans"`
+	Encryption      config.Encryption `json:"encryption"`
+	ManagedDatasets []string          `json:"managed_datasets"`
+}
+
+func LoadStore(ctx context.Context, storage storage.StrongStore) (*Store, error) {
+	slog.Debug("Loading store")
+
+	storeBytes, err := storage.LoadStoreContent(ctx)
+	if err != nil {
+		slog.Error("Failed to load store content", "error", err)
+		return nil, fmt.Errorf("failed to load store content: %w", err)
+	}
+
+	var store Store
+	if err := json.Unmarshal(storeBytes, &store); err != nil {
+		slog.Error("Failed to unmarshal store content", "error", err)
+		return nil, fmt.Errorf("failed to unmarshal store content: %w", err)
+	}
+
+	if err := store.Validate(); err != nil {
+		slog.Error("Invalid store", "error", err)
+		return nil, fmt.Errorf("invalid store: %w", err)
+	}
+
+	return &store, nil
+}
+
+func (s *Store) SaveStore(ctx context.Context, storage storage.StrongStore) error {
+	slog.Debug("Saving store", "store", s)
+
+	if err := s.Validate(); err != nil {
+		slog.Error("Invalid store", "error", err)
+		return fmt.Errorf("invalid store: %w", err)
+	}
+
+	storeBytes, err := json.Marshal(s)
+	if err != nil {
+		slog.Error("Failed to marshal store", "error", err)
+		return fmt.Errorf("failed to marshal store: %w", err)
+	}
+
+	if err := storage.SaveStoreContent(ctx, storeBytes); err != nil {
+		slog.Error("Failed to save store content", "error", err)
+		return fmt.Errorf("failed to save store content: %w", err)
+	}
+
+	return nil
 }
 
 var (
@@ -57,6 +107,8 @@ var (
 )
 
 func (s *Store) Validate() error {
+	slog.Debug("Validating store", "store", s)
+
 	if s.Version != 1 {
 		slog.Error("Invalid store version", "version", s.Version)
 		return ErrInvalidStoreVersion

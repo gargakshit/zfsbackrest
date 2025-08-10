@@ -1,7 +1,7 @@
 package config
 
 type UploadConcurrency struct {
-	Full int `json:"full"`
-	Diff int `json:"diff"`
-	Incr int `json:"incr"`
+	Full int `mapstructure:"full"`
+	Diff int `mapstructure:"diff"`
+	Incr int `mapstructure:"incr"`
 }

@@ -1,6 +1,9 @@
 debug = true
 
-[s3]
+[repository]
+included_datasets = ["glob/*", "storage/*"]
+
+[repository.s3]
 endpoint = "todo"
 bucket = "todo"
 key = "todo"
