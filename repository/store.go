@@ -4,6 +4,8 @@ import (
 	"errors"
 	"log/slog"
 	"time"
+
+	"github.com/gargakshit/zfsbackrest/config"
 )
 
 // All application flows should use FSMs and should be idempotent.
@@ -40,10 +42,11 @@ import (
 // It is made to be stored in a single file, usually on the same filesystem as
 // the zfsbackrest repository.
 type Store struct {
-	Version   int       `json:"version"`
-	CreatedAt time.Time `json:"created_at"`
-	Backups   Backups   `json:"backups"`
-	Orphans   Orphans   `json:"orphans"`
+	Version    int               `json:"version"`
+	CreatedAt  time.Time         `json:"created_at"`
+	Backups    Backups           `json:"backups"`
+	Orphans    Orphans           `json:"orphans"`
+	Encryption config.Encryption `json:"encryption"`
 }
 
 var (

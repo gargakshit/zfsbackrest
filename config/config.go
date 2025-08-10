@@ -7,10 +7,10 @@ import (
 )
 
 type Config struct {
-	S3         S3Store
-	Repository Repository
-	Debug      bool
-	Encryption Encryption
+	S3                S3Store
+	Repository        Repository
+	Debug             bool
+	UploadConcurrency UploadConcurrency
 }
 
 func LoadConfig(v *viper.Viper, path string) (*Config, error) {
