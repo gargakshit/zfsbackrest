@@ -18,6 +18,10 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a new backup repository",
 	Long:  `Initialize a new backup repository.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if ageRecipientPublicKey == "" {
+			return fmt.Errorf("age recipient public key is required")
+		}
+
 		slog.Info("Initializing ZFS backup repository...")
 
 		err := encryption.ValidateRecipientPublicKey(ageRecipientPublicKey)
@@ -38,7 +42,7 @@ var initCmd = &cobra.Command{
 
 		slog.Info("Repository initialized successfully")
 
-		return cmd.Help()
+		return nil
 	},
 }
 

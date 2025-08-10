@@ -5,6 +5,8 @@ go 1.24.6
 require (
 	filippo.io/age v1.2.1
 	github.com/gobwas/glob v0.2.3
+	github.com/lmittmann/tint v1.1.2
+	github.com/mattn/go-isatty v0.0.20
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/spf13/cobra v1.9.1

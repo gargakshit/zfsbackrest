@@ -1,4 +1,4 @@
-debug = true
+debug = true # warning, may log sensitive data
 
 [repository]
 included_datasets = ["glob/*", "storage/*"]
