@@ -11,6 +11,7 @@ type Config struct {
 	Repository        Repository
 	Debug             bool
 	UploadConcurrency UploadConcurrency
+	ZFS               ZFS
 }
 
 func LoadConfig(v *viper.Viper, path string) (*Config, error) {

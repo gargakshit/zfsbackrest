@@ -3,6 +3,8 @@ module github.com/gargakshit/zfsbackrest
 go 1.24.6
 
 require (
+	filippo.io/age v1.2.1
+	github.com/gobwas/glob v0.2.3
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/spf13/cobra v1.9.1
@@ -10,7 +12,6 @@ require (
 )
 
 require (
-	filippo.io/age v1.2.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
