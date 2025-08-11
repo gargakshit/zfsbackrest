@@ -23,7 +23,7 @@ func (z *ZFS) SendSnapshot(
 	id ulid.ULID,
 	from *ulid.ULID,
 	writeStream io.WriteCloser,
-) error {
+) (int64, error) {
 	slog.Debug("Sending snapshot", "dataset", dataset, "id", id, "from", from)
 
 	snap := snapshotName(dataset, id)
@@ -38,14 +38,14 @@ func (z *ZFS) SendSnapshot(
 	)
 	if err != nil {
 		slog.Error("Failed to send snapshot", "error", err)
-		return fmt.Errorf("failed to send snapshot: %w", err)
+		return 0, fmt.Errorf("failed to send snapshot: %w", err)
 	}
 
 	slog.Debug("Reading snapshot size from stderr")
 	size, err := getSnapshotSizeFromSendStderrReader(stderr)
 	if err != nil {
 		slog.Error("Failed to get snapshot size", "error", err)
-		return fmt.Errorf("failed to get snapshot size: %w", err)
+		return 0, fmt.Errorf("failed to get snapshot size: %w", err)
 	}
 
 	slog.Debug("Snapshot size", "size", size)
@@ -59,23 +59,23 @@ func (z *ZFS) SendSnapshot(
 	n, err := io.Copy(wrappedWriteStream, stdout)
 	if err != nil && err != io.EOF {
 		slog.Error("Failed to copy snapshot", "error", err)
-		return fmt.Errorf("failed to copy snapshot: %w", err)
+		return 0, fmt.Errorf("failed to copy snapshot: %w", err)
 	}
 
 	err = writeStream.Close()
 	if err != nil {
 		slog.Error("Failed to close write stream", "error", err)
-		return fmt.Errorf("failed to close write stream: %w", err)
+		return 0, fmt.Errorf("failed to close write stream: %w", err)
 	}
 
 	if n < size {
 		slog.Error("Failed to copy snapshot", "snapshot", snap, "expected", size, "actual", n)
-		return fmt.Errorf("failed to copy snapshot %s: expected %d bytes, got %d", snap, size, n)
+		return 0, fmt.Errorf("failed to copy snapshot %s: expected %d bytes, got %d", snap, size, n)
 	}
 
 	slog.Debug("Snapshot copied", "size", size)
 
-	return nil
+	return n, nil
 }
 
 func getSnapshotSizeFromSendStderrReader(stderr io.Reader) (int64, error) {

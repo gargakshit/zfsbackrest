@@ -29,6 +29,7 @@ type Backup struct {
 	CreatedAt time.Time  `json:"created_at"`
 	DependsOn *ulid.ULID `json:"depends_on"`
 	Dataset   string     `json:"dataset"`
+	Size      int64      `json:"size"`
 }
 
 // Error variables for backup validation

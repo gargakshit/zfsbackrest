@@ -15,7 +15,7 @@ func snapshotName(dataset string, id ulid.ULID) string {
 }
 
 func (z *ZFS) CreateSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, "snapshot", snapshotName(dataset, id))
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "snapshot", snapshotName(dataset, id))
 	if err != nil {
 		slog.Error("Failed to create ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
 		return fmt.Errorf("failed to create ZFS snapshot: %w", err)
@@ -27,7 +27,7 @@ func (z *ZFS) CreateSnapshot(ctx context.Context, dataset string, id ulid.ULID) 
 }
 
 func (z *ZFS) DeleteSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, "destroy", snapshotName(dataset, id))
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "destroy", snapshotName(dataset, id))
 	if err != nil {
 		slog.Error("Failed to delete ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
 		return fmt.Errorf("failed to delete ZFS snapshot: %w", err)
@@ -39,7 +39,7 @@ func (z *ZFS) DeleteSnapshot(ctx context.Context, dataset string, id ulid.ULID) 
 }
 
 func (z *ZFS) SnapshotExists(ctx context.Context, dataset string, id ulid.ULID) (bool, error) {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, "list", "-t", "snapshot", snapshotName(dataset, id))
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, true, "list", "-t", "snapshot", snapshotName(dataset, id))
 	if err != nil {
 		// Returns 1 if snapshot does not exist.
 		var exitErr *exec.ExitError

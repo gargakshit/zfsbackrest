@@ -10,7 +10,7 @@ import (
 )
 
 func (z *ZFS) ListSnapshots(ctx context.Context, dataset string) ([]string, error) {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, "list", "-H", "-t", "snapshot", "-o", "name", dataset)
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "list", "-H", "-t", "snapshot", "-o", "name", dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (z *ZFS) ListSnapshots(ctx context.Context, dataset string) ([]string, erro
 }
 
 func (z *ZFS) ListDatasets(ctx context.Context) ([]string, error) {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, "list", "-H", "-t", "filesystem", "-o", "name")
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "list", "-H", "-t", "filesystem", "-o", "name")
 	if err != nil {
 		return nil, err
 	}

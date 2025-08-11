@@ -2,6 +2,7 @@ package zfs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,13 +10,24 @@ import (
 )
 
 // runZFSCmdWithStdoutCapture runs a zfs command and returns the output.
-func runZFSCmdWithStdoutCapture(ctx context.Context, args ...string) ([]byte, error) {
+func runZFSCmdWithStdoutCapture(ctx context.Context, ignoreErrorCode1 bool, args ...string) ([]byte, error) {
 	cmd := exec.CommandContext(ctx, "zfs", args...)
 	slog.Debug("Running zfs command", "zfs", "zfs", "args", args)
 
 	output, err := cmd.Output()
 	if err != nil {
-		slog.Error("Failed to run zfs command", "error", err)
+		var exitErr *exec.ExitError
+		printError := true
+		if errors.As(err, &exitErr) {
+			if ignoreErrorCode1 && exitErr.ExitCode() == 1 {
+				printError = false
+			}
+		}
+
+		if printError {
+			slog.Error("Failed to run zfs command", "error", err)
+		}
+
 		return nil, fmt.Errorf("failed to run zfs command: %w", err)
 	}
 

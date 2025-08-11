@@ -30,6 +30,7 @@ type BackupFSMData struct {
 	BackupType   repository.BackupType
 	ParentBackup *repository.Backup
 	Manifest     *repository.Backup
+	SnapshotSize int64
 }
 
 func (r *Runner) Backup(ctx context.Context, typ repository.BackupType, dataset string) error {
@@ -187,11 +188,13 @@ func (r *Runner) Backup(ctx context.Context, typ repository.BackupType, dataset 
 						parentID = &data.ParentBackup.ID
 					}
 
-					err = r.ZFS.SendSnapshot(ctx, data.Dataset, data.Manifest.ID, parentID, writeStream)
+					size, err := r.ZFS.SendSnapshot(ctx, data.Dataset, data.Manifest.ID, parentID, writeStream)
 					if err != nil {
 						slog.Error("Failed to send snapshot", "error", err)
 						return fmt.Errorf("failed to send snapshot: %w", err)
 					}
+
+					data.SnapshotSize = size
 
 					return nil
 				},
@@ -209,6 +212,9 @@ func (r *Runner) Backup(ctx context.Context, typ repository.BackupType, dataset 
 						slog.Error("Failed to remove orphan", "error", err)
 						return fsm.NewUnrecoverableError(fmt.Errorf("failed to remove orphan: %w", err))
 					}
+
+					// Update manifest with the snapshot size.
+					data.Manifest.Size = data.SnapshotSize
 
 					// Add backup.
 					slog.Debug("Adding backup", "backup", data.Manifest)
