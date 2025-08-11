@@ -14,6 +14,9 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+// SendSnapshot sends a snapshot to the write stream. The write stream is
+// expected to be a WriteCloser that will be closed when the snapshot is fully
+// sent.
 func (z *ZFS) SendSnapshot(
 	ctx context.Context,
 	dataset string,
@@ -27,11 +30,11 @@ func (z *ZFS) SendSnapshot(
 
 	extraArgs := []string{}
 	if from != nil {
-		extraArgs = append(extraArgs, "-I", snapshotName(dataset, *from))
+		extraArgs = append(extraArgs, "-i", snapshotName(dataset, *from))
 	}
 
 	stdout, stderr, err := runZFSCmdWithStreaming(ctx,
-		append([]string{"send", "-LPc", snap}, extraArgs...)...,
+		append([]string{"send", "-LPpc", snap}, extraArgs...)...,
 	)
 	if err != nil {
 		slog.Error("Failed to send snapshot", "error", err)
@@ -47,8 +50,13 @@ func (z *ZFS) SendSnapshot(
 
 	slog.Debug("Snapshot size", "size", size)
 
-	wrappedWriteStream := util.NewLoggedWriter(writeStream, 5*time.Second, size)
-	n, err := io.CopyN(wrappedWriteStream, stdout, size)
+	wrappedWriteStream := util.NewLoggedWriter(snap, writeStream, 5*time.Second, size)
+
+	// We could've used io.CopyN and specified the size, but the size `zfs send`
+	// returns is not indicative of the actual size of the stream. It doesn't
+	// account for the headers, footers, checksums, etc.
+	// Not sure how secure this is :(
+	n, err := io.Copy(wrappedWriteStream, stdout)
 	if err != nil && err != io.EOF {
 		slog.Error("Failed to copy snapshot", "error", err)
 		return fmt.Errorf("failed to copy snapshot: %w", err)
@@ -60,9 +68,9 @@ func (z *ZFS) SendSnapshot(
 		return fmt.Errorf("failed to close write stream: %w", err)
 	}
 
-	if n != size {
-		slog.Error("Failed to copy snapshot", "expected", size, "actual", n)
-		return fmt.Errorf("failed to copy snapshot: expected %d bytes, got %d", size, n)
+	if n < size {
+		slog.Error("Failed to copy snapshot", "snapshot", snap, "expected", size, "actual", n)
+		return fmt.Errorf("failed to copy snapshot %s: expected %d bytes, got %d", snap, size, n)
 	}
 
 	slog.Debug("Snapshot copied", "size", size)
