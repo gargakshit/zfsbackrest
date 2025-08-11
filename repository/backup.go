@@ -154,6 +154,51 @@ func (bs Backups) Expired(id ulid.ULID, expiry *config.Expiry) (bool, error) {
 	}
 }
 
+func (bs Backups) TimeTillExpiry(id ulid.ULID, expiry *config.Expiry) (time.Duration, error) {
+	slog.Debug("Calculating time till expiry", "backup", id)
+
+	if err := bs.Validate(id); err != nil {
+		return 0, err
+	}
+
+	// get the backup
+	b := bs[id]
+
+	switch b.Type {
+	case BackupTypeFull:
+		return time.Until(b.CreatedAt.Add(expiry.Full)), nil
+
+	case BackupTypeDiff:
+		parentExpiry, err := bs.TimeTillExpiry(*b.DependsOn, expiry)
+		if err != nil {
+			return 0, err
+		}
+
+		myExpiry := time.Until(b.CreatedAt.Add(expiry.Diff))
+		if myExpiry < parentExpiry {
+			return myExpiry, nil
+		}
+
+		return parentExpiry, nil
+
+	case BackupTypeIncr:
+		parentExpiry, err := bs.TimeTillExpiry(*b.DependsOn, expiry)
+		if err != nil {
+			return 0, err
+		}
+
+		myExpiry := time.Until(b.CreatedAt.Add(expiry.Incr))
+		if myExpiry < parentExpiry {
+			return myExpiry, nil
+		}
+
+		return parentExpiry, nil
+
+	default:
+		return 0, ErrUnknownBackupType
+	}
+}
+
 // LatestFull returns the latest full backup.
 func (bs Backups) LatestFull(dataset string) *Backup {
 	var backup *Backup

@@ -16,7 +16,7 @@ const (
 	OrphanReasonStartedDeletion OrphanReason = "started_deletion"
 )
 
-type Orphans map[ulid.ULID]Orphan
+type Orphans map[ulid.ULID]*Orphan
 
 type Orphan struct {
 	Backup Backup       `json:"backup"`
@@ -28,7 +28,7 @@ func (o *Orphan) SafeToDelete() bool {
 }
 
 func (s *Store) AddOrphan(ctx context.Context, backup Backup, reason OrphanReason) error {
-	orphan := Orphan{
+	orphan := &Orphan{
 		Backup: backup,
 		Reason: reason,
 	}

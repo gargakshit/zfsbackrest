@@ -54,7 +54,7 @@ func TestStoreValidate(t *testing.T) {
 					Version:   1,
 					CreatedAt: now,
 					Backups:   Backups{id: b},
-					Orphans:   Orphans{id: Orphan{Backup: *b}},
+					Orphans:   Orphans{id: &Orphan{Backup: *b}},
 				}
 			},
 			wantErr: ErrBackupInOrphan,

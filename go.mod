@@ -4,19 +4,21 @@ go 1.24.6
 
 require (
 	filippo.io/age v1.2.1
+	github.com/dustin/go-humanize v1.0.1
+	github.com/fatih/color v1.15.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.7.0
 	github.com/lmittmann/tint v1.1.2
 	github.com/mattn/go-isatty v0.0.20
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/oklog/ulid/v2 v2.1.1
+	github.com/olekukonko/tablewriter v1.0.9
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 )
 
 require (
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
@@ -25,10 +27,15 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/minio/crc64nvme v1.0.2 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
+	github.com/olekukonko/errors v1.1.0 // indirect
+	github.com/olekukonko/ll v0.0.9 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
