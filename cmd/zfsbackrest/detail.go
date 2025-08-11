@@ -68,13 +68,27 @@ func init() {
 func renderStoreInfo(store *repository.Store) error {
 	color.New(color.Bold).Add(color.Underline).Fprintf(os.Stdout, "Store Info\n")
 
+	totalStorage := int64(0)
+	for _, b := range store.Backups {
+		totalStorage += b.Size
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
-	table.Header([]string{"Version", "Created At", "Backups", "Orphans", "Age public key"})
+	table.Header([]string{
+		"Version",
+		"Created At",
+		"Backups",
+		"Orphans",
+		"Total Storage Used",
+		"Age public key",
+	})
+
 	table.Append([]string{
 		fmt.Sprintf("%d", store.Version),
 		store.CreatedAt.Format(time.RFC1123),
 		fmt.Sprintf("%d", len(store.Backups)),
 		fmt.Sprintf("%d", len(store.Orphans)),
+		humanize.Bytes(uint64(totalStorage)),
 		store.Encryption.Age.RecipientPublicKey,
 	})
 
@@ -86,10 +100,42 @@ func renderStoreInfo(store *repository.Store) error {
 func renderManagedDatasets(store *repository.Store) error {
 	color.New(color.Bold).Add(color.Underline).Fprintf(os.Stdout, "Managed Datasets\n")
 
+	storageUsedByDataset := make(map[string]int64)
+
+	completedFullBackupsByDataset := make(map[string]int)
+	completedDiffBackupsByDataset := make(map[string]int)
+	completedIncrementalBackupsByDataset := make(map[string]int)
+
+	lastBackupByDataset := make(map[string]time.Time)
+
+	for _, b := range store.Backups {
+		storageUsedByDataset[b.Dataset] += b.Size
+
+		switch b.Type {
+		case repository.BackupTypeFull:
+			completedFullBackupsByDataset[b.Dataset]++
+		case repository.BackupTypeDiff:
+			completedDiffBackupsByDataset[b.Dataset]++
+		case repository.BackupTypeIncr:
+			completedIncrementalBackupsByDataset[b.Dataset]++
+		}
+
+		if b.CreatedAt.After(lastBackupByDataset[b.Dataset]) {
+			lastBackupByDataset[b.Dataset] = b.CreatedAt
+		}
+	}
+
 	table := tablewriter.NewWriter(os.Stdout)
-	table.Header([]string{"Dataset"})
+	table.Header([]string{"Dataset", "Storage Used", "Full Backups", "Diff Backups", "Incremental Backups", "Last Backup"})
 	for _, d := range store.ManagedDatasets {
-		table.Append([]string{d})
+		table.Append([]string{
+			d,
+			humanize.Bytes(uint64(storageUsedByDataset[d])),
+			fmt.Sprintf("%d", completedFullBackupsByDataset[d]),
+			fmt.Sprintf("%d", completedDiffBackupsByDataset[d]),
+			fmt.Sprintf("%d", completedIncrementalBackupsByDataset[d]),
+			lastBackupByDataset[d].Format(time.RFC1123),
+		})
 	}
 
 	table.Render()
