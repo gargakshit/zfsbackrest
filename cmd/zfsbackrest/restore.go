@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
+	"github.com/gargakshit/zfsbackrest/encryption"
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
 	"github.com/spf13/cobra"
 )
@@ -25,6 +27,24 @@ var restoreCmd = &cobra.Command{
 			"dataset-to", restoreDatasetTo,
 		)
 
+		if ageIdentityFile == "" {
+			return fmt.Errorf("age identity file is required. Please use --age-identity-file to specify the age identity file")
+		}
+
+		if restoreDataset == "" {
+			return fmt.Errorf("dataset is required. Please use --dataset to specify the dataset to restore")
+		}
+
+		if restoreDatasetTo == "" {
+			return fmt.Errorf("dataset-to is required. Please use --dataset-to to specify the dataset to restore to")
+		}
+
+		slog.Debug("Reading age identity file", "age-identity-file", ageIdentityFile)
+		identity, err := os.ReadFile(ageIdentityFile)
+		if err != nil {
+			return fmt.Errorf("failed to read age identity file: %w", err)
+		}
+
 		slog.Debug("Creating runner from existing repository", "config", cfg)
 		runner, err := zfsbackrest.NewRunnerFromExistingRepository(cmd.Context(), cfg)
 		if err != nil {
@@ -32,7 +52,13 @@ var restoreCmd = &cobra.Command{
 		}
 		slog.Debug("Runner created", "runner", runner)
 
-		_ = runner
+		slog.Debug("Creating encryption instance from age identity file", "age-identity-file", ageIdentityFile)
+		encryption, err := encryption.NewAgeFromIdentity(string(identity), &runner.Store.Encryption.Age)
+		if err != nil {
+			return fmt.Errorf("failed to create encryption instance: %w", err)
+		}
+		slog.Debug("Swapping encryption instance with decryption capabilities")
+		runner.Encryption = encryption
 
 		return nil
 	},
@@ -41,8 +67,8 @@ var restoreCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(restoreCmd)
 
-	restoreCmd.Flags().StringVar(&ageIdentityFile, "age-identity-file", "", "Path to the age identity file")
-	restoreCmd.Flags().StringVar(&restoreDataset, "dataset", "", "Dataset to restore")
-	restoreCmd.Flags().StringVar(&restoreBackupID, "backup-id", "", "Backup ID to restore (restores the latest backup by default)")
-	restoreCmd.Flags().StringVar(&restoreDatasetTo, "dataset-to", "", "Dataset to restore to")
+	restoreCmd.Flags().StringVarP(&ageIdentityFile, "age-identity-file", "i", "", "Path to the age identity file")
+	restoreCmd.Flags().StringVarP(&restoreDataset, "dataset", "d", "", "Dataset to restore")
+	restoreCmd.Flags().StringVarP(&restoreBackupID, "backup-id", "b", "", "Backup ID to restore (restores the latest backup by default)")
+	restoreCmd.Flags().StringVarP(&restoreDatasetTo, "dataset-to", "o", "", "Dataset to restore to")
 }
