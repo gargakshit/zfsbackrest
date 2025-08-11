@@ -28,7 +28,7 @@ var backupCmd = &cobra.Command{
 			return fmt.Errorf("failed to create runner: %w", err)
 		}
 
-		err = runner.Backup(cmd.Context(), repository.BackupType(backupType), "storage/projects/zfsbackrest-test")
+		err = runner.BackupAllManaged(cmd.Context(), &cfg.UploadConcurrency, repository.BackupType(backupType))
 		if err != nil {
 			return fmt.Errorf("failed to backup: %w", err)
 		}

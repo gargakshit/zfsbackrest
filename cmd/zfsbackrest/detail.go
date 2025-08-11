@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
+	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
 )
 
+var jsonDetail bool
 var detailCmd = &cobra.Command{
 	Use:   "detail",
 	Short: "Show details about a backup repository",
@@ -29,4 +32,7 @@ var detailCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(detailCmd)
+
+	isTerminal := isatty.IsTerminal(os.Stdout.Fd())
+	detailCmd.Flags().BoolVar(&jsonDetail, "json", !isTerminal, "Output in JSON format")
 }
