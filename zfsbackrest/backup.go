@@ -155,7 +155,7 @@ func (r *Runner) createBackupFSM(ctx context.Context, typ repository.BackupType,
 				Run: func(ctx context.Context, data *BackupFSMData) error {
 					slog.Debug("Getting parent backup", "dataset", data.Dataset, "backup_type", data.BackupType)
 
-					parent, err := r.Store.Backups.GetParent(typ)
+					parent, err := r.Store.Backups.GetParent(data.Dataset, data.BackupType)
 					if err != nil {
 						slog.Error("Failed to get parent backup", "error", err)
 						return fsm.NewUnrecoverableError(fmt.Errorf("failed to get parent backup: %w", err))

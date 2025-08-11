@@ -155,10 +155,10 @@ func (bs Backups) Expired(id ulid.ULID, expiry *config.Expiry) (bool, error) {
 }
 
 // LatestFull returns the latest full backup.
-func (bs Backups) LatestFull() *Backup {
+func (bs Backups) LatestFull(dataset string) *Backup {
 	var backup *Backup
 	for _, b := range bs {
-		if b.Type == BackupTypeFull {
+		if b.Type == BackupTypeFull && b.Dataset == dataset {
 			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
 				backup = b
 			}
@@ -169,10 +169,10 @@ func (bs Backups) LatestFull() *Backup {
 }
 
 // LatestDiff returns the latest diff backup.
-func (bs Backups) LatestDiff() *Backup {
+func (bs Backups) LatestDiff(dataset string) *Backup {
 	var backup *Backup
 	for _, b := range bs {
-		if b.Type == BackupTypeDiff {
+		if b.Type == BackupTypeDiff && b.Dataset == dataset {
 			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
 				backup = b
 			}
@@ -183,10 +183,10 @@ func (bs Backups) LatestDiff() *Backup {
 }
 
 // LatestIncr returns the latest incremental backup.
-func (bs Backups) LatestIncr() *Backup {
+func (bs Backups) LatestIncr(dataset string) *Backup {
 	var backup *Backup
 	for _, b := range bs {
-		if b.Type == BackupTypeIncr {
+		if b.Type == BackupTypeIncr && b.Dataset == dataset {
 			if backup == nil || backup.CreatedAt.Before(b.CreatedAt) {
 				backup = b
 			}
@@ -196,27 +196,27 @@ func (bs Backups) LatestIncr() *Backup {
 	return backup
 }
 
-func (bs Backups) GetParent(typ BackupType) (*Backup, error) {
+func (bs Backups) GetParent(dataset string, typ BackupType) (*Backup, error) {
 	switch typ {
 	case BackupTypeFull:
-		slog.Debug("Parent not needed for full backup")
+		slog.Debug("Parent not needed for full backup", "dataset", dataset)
 		return nil, nil
 
 	case BackupTypeDiff:
-		slog.Debug("Getting parent for diff backup (full backup)")
-		latestFull := bs.LatestFull()
+		slog.Debug("Getting parent for diff backup (full backup)", "dataset", dataset)
+		latestFull := bs.LatestFull(dataset)
 		if latestFull == nil {
-			slog.Error("Parent not found for diff backup", "error", ErrParentBackupNotFound.Error())
+			slog.Error("Parent not found for diff backup", "dataset", dataset, "error", ErrParentBackupNotFound.Error())
 			return nil, ErrParentBackupNotFound
 		}
 
 		return latestFull, nil
 
 	case BackupTypeIncr:
-		slog.Debug("Getting parent for incr backup (diff backup)")
-		latestDiff := bs.LatestDiff()
+		slog.Debug("Getting parent for incr backup (diff backup)", "dataset", dataset)
+		latestDiff := bs.LatestDiff(dataset)
 		if latestDiff == nil {
-			slog.Error("Parent not found for incr backup", "error", ErrParentBackupNotFound.Error())
+			slog.Error("Parent not found for incr backup", "dataset", dataset, "error", ErrParentBackupNotFound.Error())
 			return nil, ErrParentBackupNotFound
 		}
 
