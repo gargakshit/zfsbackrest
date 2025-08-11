@@ -11,14 +11,16 @@ type LoggedWriter struct {
 	logInterval  time.Duration
 	lastLog      time.Time
 	totalWritten int64
+	expectedSize int64
 }
 
-func NewLoggedWriter(underlying io.WriteCloser, logInterval time.Duration) *LoggedWriter {
+func NewLoggedWriter(underlying io.WriteCloser, logInterval time.Duration, expectedSize int64) *LoggedWriter {
 	return &LoggedWriter{
 		underlying:   underlying,
 		logInterval:  logInterval,
 		lastLog:      time.Now().Add(-logInterval),
 		totalWritten: 0,
+		expectedSize: expectedSize,
 	}
 }
 
@@ -30,7 +32,11 @@ func (w *LoggedWriter) Write(p []byte) (int, error) {
 	}
 
 	if time.Since(w.lastLog) > w.logInterval {
-		slog.Info("Written", "bytes", n, "total", w.totalWritten)
+		if w.expectedSize > 0 {
+			slog.Info("Written", "total", w.totalWritten, "expected", w.expectedSize, "progress", float64(w.totalWritten)/float64(w.expectedSize))
+		} else {
+			slog.Info("Written", "total", w.totalWritten)
+		}
 		w.lastLog = time.Now()
 	}
 

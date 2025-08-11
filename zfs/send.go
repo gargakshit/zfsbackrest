@@ -8,7 +8,9 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/gargakshit/zfsbackrest/util"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -45,8 +47,7 @@ func (z *ZFS) SendSnapshot(
 
 	slog.Debug("Snapshot size", "size", size)
 
-	// wrappedWriteStream := util.NewLoggedWriter(writeStream, w2*time.Second)
-	wrappedWriteStream := writeStream
+	wrappedWriteStream := util.NewLoggedWriter(writeStream, 5*time.Second, size)
 	n, err := io.CopyN(wrappedWriteStream, stdout, size)
 	if err != nil && err != io.EOF {
 		slog.Error("Failed to copy snapshot", "error", err)
