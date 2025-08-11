@@ -217,6 +217,12 @@ func (r *Runner) createBackupFSM(ctx context.Context, typ repository.BackupType,
 				To:   BackupStateHeldSnapshot,
 				Run: func(ctx context.Context, data *BackupFSMData) error {
 					slog.Debug("Holding snapshot", "dataset", data.Dataset)
+
+					if data.BackupType == repository.BackupTypeIncr {
+						slog.Debug("Skipping hold for incremental backup as no other snapshot can depend on it", "dataset", data.Dataset)
+						return nil
+					}
+
 					err := r.ZFS.HoldSnapshot(ctx, data.Dataset, data.BackupID)
 					if err != nil {
 						slog.Error("Failed to hold snapshot", "error", err)
