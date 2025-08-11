@@ -97,6 +97,8 @@ func (r *Runner) DeleteExpired(ctx context.Context, dataset string, opts DeleteO
 		return sorted[i].ID.Compare(sorted[j].ID) > 0
 	})
 
+	slog.Debug("Sorted expired backups", "dataset", dataset, "sorted", sorted)
+
 	for _, backup := range sorted {
 		slog.Debug("Deleting expired backup", "dataset", dataset, "id", backup.ID)
 		err := r.Delete(ctx, dataset, backup.ID, opts)
@@ -362,14 +364,14 @@ func (r *Runner) createDeleteFSM(dataset string, id ulid.ULID) (*fsm.FSM[DeleteS
 				Run: func(ctx context.Context, data *DeleteFSMData) error {
 					slog.Debug("Releasing snapshot", "dataset", data.Dataset, "backup", data.Backup.ID)
 
-					// Short circuit for incremental backups.
-					if data.Backup.Type == repository.BackupTypeIncr {
-						slog.Debug("Skipping snapshot release for incremental backup", "dataset", data.Dataset, "backup", data.Backup.ID)
-						return nil
-					}
-
-					err := r.ZFS.ReleaseSnapshot(ctx, data.Dataset, data.Backup.ID)
+					err := r.ZFS.ReleaseSnapshot(ctx, true, data.Dataset, data.Backup.ID)
 					if err != nil {
+						// Short circuit for incremental backups.
+						if data.Backup.Type == repository.BackupTypeIncr {
+							slog.Debug("Skipping snapshot release for incremental backup", "dataset", data.Dataset, "backup", data.Backup.ID)
+							return nil
+						}
+
 						slog.Warn("Failed to release snapshot. Its non-fatal.", "error", err)
 						return nil
 					}

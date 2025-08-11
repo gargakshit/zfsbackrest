@@ -79,9 +79,16 @@ func (z *ZFS) HoldSnapshot(ctx context.Context, dataset string, id ulid.ULID) er
 	return nil
 }
 
-func (z *ZFS) ReleaseSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "release", holdTag, snapshotName(dataset, id))
+func (z *ZFS) ReleaseSnapshot(ctx context.Context, ignoreErrorCode1 bool, dataset string, id ulid.ULID) error {
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, ignoreErrorCode1, "release", holdTag, snapshotName(dataset, id))
 	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 1 {
+				slog.Debug("ZFS snapshot already released", "dataset", dataset, "id", id, "stdout", string(stdout))
+				return nil
+			}
+		}
 		slog.Error("Failed to release ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
 		return fmt.Errorf("failed to release ZFS snapshot: %w", err)
 	}

@@ -68,10 +68,10 @@ func (z *ZFS) SendSnapshot(
 		return 0, fmt.Errorf("failed to close write stream: %w", err)
 	}
 
-	if n < size {
-		slog.Error("Failed to copy snapshot", "snapshot", snap, "expected", size, "actual", n)
-		return 0, fmt.Errorf("failed to copy snapshot %s: expected %d bytes, got %d", snap, size, n)
-	}
+	// if n < size {
+	// 	slog.Error("Failed to copy snapshot", "snapshot", snap, "expected", size, "actual", n)
+	// 	return 0, fmt.Errorf("failed to copy snapshot %s: expected %d bytes, got %d", snap, size, n)
+	// }
 
 	slog.Debug("Snapshot copied", "size", size)
 

@@ -186,7 +186,7 @@ func renderBackupsTable(store *repository.Store, cfg *config.Config) error {
 		table.Append([]string{
 			padding + b.Dataset,
 			b.ID.String(),
-			string(b.Type),
+			padding + string(b.Type),
 			dependsOn,
 			b.CreatedAt.Format(time.RFC1123),
 			humanize.Bytes(uint64(b.Size)),
