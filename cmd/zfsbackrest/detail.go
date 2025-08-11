@@ -126,7 +126,7 @@ func renderManagedDatasets(store *repository.Store) error {
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.Header([]string{"Dataset", "Storage Used", "Full Backups", "Diff Backups", "Incremental Backups", "Last Backup"})
+	table.Header([]string{"Dataset", "Storage Used", "Full Backups", "Diff Backups", "Incr Backups", "Last Backup"})
 	for _, d := range store.ManagedDatasets {
 		table.Append([]string{
 			d,
