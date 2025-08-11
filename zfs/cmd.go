@@ -60,3 +60,21 @@ func runZFSCmdWithStreaming(ctx context.Context, args ...string) (io.ReadCloser,
 
 	return stdout, stderr, nil
 }
+
+// runZFSCmdWithStdinStreaming runs a zfs command with stdin and returns the stdout.
+func runZFSCmdWithStdinStreaming(ctx context.Context, stdin io.Reader, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "zfs", args...)
+	slog.Debug("Running zfs command", "zfs", "zfs", "args", args)
+
+	cmd.Stdin = stdin
+
+	stdout, err := cmd.Output()
+	if err != nil {
+		slog.Error("Failed to run zfs command", "error", err)
+		return nil, fmt.Errorf("failed to run zfs command: %w", err)
+	}
+
+	slog.Debug("ZFS command output", "zfs", "zfs", "args", args, "output", string(stdout))
+
+	return stdout, nil
+}

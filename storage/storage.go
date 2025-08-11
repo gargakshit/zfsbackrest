@@ -28,6 +28,13 @@ type StrongStore interface {
 		size int64,
 		encryption encryption.Encryption,
 	) (io.WriteCloser, error)
+	// OpenSnapshotReadStream opens a stream for reading a snapshot.
+	OpenSnapshotReadStream(
+		ctx context.Context,
+		dataset string,
+		snapshot string,
+		encryption encryption.Encryption,
+	) (io.ReadCloser, error)
 	// DeleteSnapshot deletes a snapshot from the storage.
 	DeleteSnapshot(ctx context.Context, dataset string, snapshot string) error
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"path"
@@ -124,6 +125,30 @@ func (s *S3StrongStorage) OpenSnapshotWriteStream(
 		pw:   pw,
 		done: done,
 	}, nil
+}
+
+func (s *S3StrongStorage) OpenSnapshotReadStream(
+	ctx context.Context,
+	dataset string,
+	snapshot string,
+	encryption encryption.Encryption,
+) (io.ReadCloser, error) {
+	filePath := s.filePath(dataset, snapshot)
+	slog.Debug("Opening snapshot read stream", "bucket", s.s3Config.Bucket, "path", filePath)
+
+	reader, err := s.mc.GetObject(ctx, s.s3Config.Bucket, filePath, minio.GetObjectOptions{})
+	if err != nil {
+		slog.Error("Failed to get snapshot", "error", err)
+		return nil, fmt.Errorf("failed to get snapshot: %w", err)
+	}
+
+	wrappedReader, err := encryption.DecryptedReader(reader)
+	if err != nil {
+		slog.Error("Failed to decrypt snapshot", "error", err)
+		return nil, fmt.Errorf("failed to decrypt snapshot: %w", err)
+	}
+
+	return wrappedReader, nil
 }
 
 func (s *S3StrongStorage) DeleteSnapshot(

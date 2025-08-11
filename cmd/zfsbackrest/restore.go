@@ -7,6 +7,7 @@ import (
 
 	"github.com/gargakshit/zfsbackrest/encryption"
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
+	"github.com/oklog/ulid/v2"
 	"github.com/spf13/cobra"
 )
 
@@ -60,6 +61,29 @@ var restoreCmd = &cobra.Command{
 		slog.Debug("Swapping encryption instance with decryption capabilities")
 		runner.Encryption = encryption
 
+		var backupID ulid.ULID
+
+		if restoreBackupID == "" {
+			backupID, err = runner.GetLatestRestoreBackupID(cmd.Context(), restoreDataset)
+			if err != nil {
+				return fmt.Errorf("failed to get latest restore backup ID: %w", err)
+			}
+		} else {
+			backupID, err = ulid.Parse(restoreBackupID)
+			if err != nil {
+				return fmt.Errorf("failed to parse backup ID: %w", err)
+			}
+		}
+
+		slog.Info("Restoring backup", "backup-id", backupID, "source-dataset", restoreDataset, "destination-dataset", restoreDatasetTo)
+
+		err = runner.RestoreRecursive(cmd.Context(), restoreDatasetTo, backupID)
+		if err != nil {
+			return fmt.Errorf("failed to restore backup: %w", err)
+		}
+
+		slog.Info("Backup restored", "backup-id", backupID, "source-dataset", restoreDataset, "destination-dataset", restoreDatasetTo)
+
 		return nil
 	},
 }
@@ -68,7 +92,7 @@ func init() {
 	rootCmd.AddCommand(restoreCmd)
 
 	restoreCmd.Flags().StringVarP(&ageIdentityFile, "age-identity-file", "i", "", "Path to the age identity file")
-	restoreCmd.Flags().StringVarP(&restoreDataset, "dataset", "d", "", "Dataset to restore")
+	restoreCmd.Flags().StringVarP(&restoreDataset, "src-dataset", "s", "", "Source dataset to restore. Doesn't necessarily need to exist locally.")
 	restoreCmd.Flags().StringVarP(&restoreBackupID, "backup-id", "b", "", "Backup ID to restore (restores the latest backup by default)")
-	restoreCmd.Flags().StringVarP(&restoreDatasetTo, "dataset-to", "o", "", "Dataset to restore to")
+	restoreCmd.Flags().StringVarP(&restoreDatasetTo, "dst-dataset", "d", "", "Destination dataset to restore to. Will error if the dataset already exists.")
 }
