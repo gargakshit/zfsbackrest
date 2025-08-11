@@ -2,8 +2,10 @@ package main
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/gargakshit/zfsbackrest/config"
+	"github.com/gargakshit/zfsbackrest/glock"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -51,5 +53,17 @@ func init() {
 }
 
 func main() {
+	// Acquire a global process lock to ensure only one instance runs on this system.
+	slog.Debug("Acquiring global process lock")
+	lock, err := glock.Acquire("zfsbackrest")
+	if err != nil {
+		slog.Error("Failed to acquire global lock", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		slog.Debug("Releasing global process lock")
+		_ = lock.Release()
+	}()
+
 	rootCmd.Execute()
 }
