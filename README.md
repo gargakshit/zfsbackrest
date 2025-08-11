@@ -105,3 +105,7 @@ zfsbackrest restore -i <path-to-age-identity-file> \
   -b <optionally, the backup ID to restore from, leave empty to restore the latest> \
   -d <name of the dataset to restore to> # Restoring to a dataset that already exists on your local FS will fail.
 ```
+
+## Model
+
+TODO
