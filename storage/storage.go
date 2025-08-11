@@ -29,10 +29,5 @@ type StrongStore interface {
 		encryption encryption.Encryption,
 	) (io.WriteCloser, error)
 	// DeleteSnapshot deletes a snapshot from the storage.
-	DeleteSnapshot(
-		ctx context.Context,
-		dataset string,
-		snapshot string,
-		encryption encryption.Encryption,
-	) error
+	DeleteSnapshot(ctx context.Context, dataset string, snapshot string) error
 }

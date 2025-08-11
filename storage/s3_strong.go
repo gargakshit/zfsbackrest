@@ -130,7 +130,6 @@ func (s *S3StrongStorage) DeleteSnapshot(
 	ctx context.Context,
 	dataset string,
 	snapshot string,
-	encryption encryption.Encryption,
 ) error {
 	filePath := s.filePath(dataset, snapshot)
 	slog.Debug("Deleting snapshot", "bucket", s.s3Config.Bucket, "path", filePath)

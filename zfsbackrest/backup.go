@@ -229,6 +229,8 @@ func (r *Runner) createBackupFSM(ctx context.Context, typ repository.BackupType,
 						return fmt.Errorf("failed to hold snapshot: %w", err)
 					}
 
+					slog.Debug("Snapshot held", "dataset", data.Dataset, "backup", data.BackupID)
+
 					return nil
 				},
 			},
@@ -366,8 +368,8 @@ func (r *Runner) createBackupFSM(ctx context.Context, typ repository.BackupType,
 			},
 		},
 		fsm.RetryExponentialBackoffConfig{
-			MaxRetries:     3,
-			WaitIncrements: 1 * time.Second,
+			MaxRetries:     5,
+			WaitIncrements: 2 * time.Second,
 			MaxWait:        10 * time.Second,
 		},
 	)

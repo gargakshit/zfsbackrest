@@ -154,6 +154,26 @@ func (bs Backups) Expired(id ulid.ULID, expiry *config.Expiry) (bool, error) {
 	}
 }
 
+func (bs Backups) ExpiredBackupsForDataset(dataset string, expiry *config.Expiry) (Backups, error) {
+	slog.Debug("Getting expired backups for dataset", "dataset", dataset)
+
+	expired := make(Backups)
+	for _, b := range bs {
+		if b.Dataset == dataset {
+			didExpire, err := bs.Expired(b.ID, expiry)
+			if err != nil {
+				return nil, err
+			}
+
+			if didExpire {
+				expired[b.ID] = b
+			}
+		}
+	}
+
+	return expired, nil
+}
+
 func (bs Backups) TimeTillExpiry(id ulid.ULID, expiry *config.Expiry) (time.Duration, error) {
 	slog.Debug("Calculating time till expiry", "backup", id)
 
@@ -269,6 +289,44 @@ func (bs Backups) GetParent(dataset string, typ BackupType) (*Backup, error) {
 	}
 
 	return nil, ErrUnknownBackupType
+}
+
+func (bs Backups) GetChildren(id ulid.ULID) Backups {
+	slog.Debug("Getting children of backup", "backup", id)
+
+	// Check if backup exists in the first place.
+	if _, ok := bs[id]; !ok {
+		slog.Error("Backup not found", "backup", id)
+		return nil
+	}
+
+	// Short circuit for incrementals.
+	if bs[id].Type == BackupTypeIncr {
+		slog.Debug("Skipping children for incremental backup", "backup", id)
+		return nil
+	}
+
+	children := make(Backups)
+	for _, b := range bs {
+		if b.DependsOn != nil && *b.DependsOn == id {
+			children[b.ID] = b
+		}
+	}
+
+	return children
+}
+
+func (bs Backups) RemoveBackup(id ulid.ULID) error {
+	slog.Debug("Removing backup", "backup", id)
+
+	if _, ok := bs[id]; !ok {
+		slog.Error("Backup not found", "backup", id)
+		return fmt.Errorf("backup not found: %s", id)
+	}
+
+	delete(bs, id)
+
+	return nil
 }
 
 func (s *Store) AddBackup(ctx context.Context, backup Backup) error {
