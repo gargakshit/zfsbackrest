@@ -60,8 +60,16 @@ func (z *ZFS) SnapshotExists(ctx context.Context, dataset string, id ulid.ULID) 
 const holdTag = "zfsbackrest-hold"
 
 func (z *ZFS) HoldSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
-	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "hold", holdTag, snapshotName(dataset, id))
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, true, "hold", holdTag, snapshotName(dataset, id))
 	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			if exitErr.ExitCode() == 1 {
+				slog.Debug("ZFS snapshot already held", "dataset", dataset, "id", id, "stdout", string(stdout))
+				return nil
+			}
+		}
+
 		slog.Error("Failed to hold ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
 		return fmt.Errorf("failed to hold ZFS snapshot: %w", err)
 	}
