@@ -569,10 +569,11 @@ func TestLatestFull(t *testing.T) {
 	earlier := now.Add(-2 * time.Hour)
 	mid := now.Add(-1 * time.Hour)
 	later := now.Add(-30 * time.Minute)
+	dataset := "tank/app"
 
 	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
 		id := ulid.Make()
-		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+		return &Backup{ID: id, Type: tp, CreatedAt: ts, Dataset: dataset}, id
 	}
 
 	tests := []struct {
@@ -628,12 +629,12 @@ func TestLatestFull(t *testing.T) {
 	// Populate expected IDs dynamically since we generate inside builders
 	for ti := range tests {
 		bset := tests[ti].build()
-		got := bset.LatestFull()
+		got := bset.LatestFull(dataset)
 		var expected *ulid.ULID
 		switch tests[ti].name {
 		case "single full -> that id":
 			for id, b := range bset {
-				if b.Type == BackupTypeFull {
+				if b.Type == BackupTypeFull && b.Dataset == dataset {
 					idCopy := id
 					expected = &idCopy
 				}
@@ -642,7 +643,7 @@ func TestLatestFull(t *testing.T) {
 			var want *Backup
 			var wantID ulid.ULID
 			for id, b := range bset {
-				if b.Type != BackupTypeFull {
+				if b.Type != BackupTypeFull || b.Dataset != dataset {
 					continue
 				}
 				if want == nil || want.CreatedAt.Before(b.CreatedAt) {
@@ -653,7 +654,7 @@ func TestLatestFull(t *testing.T) {
 			expected = &wantID
 		case "mixed types with one full -> that full":
 			for id, b := range bset {
-				if b.Type == BackupTypeFull {
+				if b.Type == BackupTypeFull && b.Dataset == dataset {
 					idCopy := id
 					expected = &idCopy
 				}
@@ -676,10 +677,11 @@ func TestLatestDiff(t *testing.T) {
 	now := time.Now()
 	earlier := now.Add(-2 * time.Hour)
 	later := now.Add(-10 * time.Minute)
+	dataset := "tank/app"
 
 	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
 		id := ulid.Make()
-		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+		return &Backup{ID: id, Type: tp, CreatedAt: ts, Dataset: dataset}, id
 	}
 
 	tests := []struct {
@@ -716,11 +718,11 @@ func TestLatestDiff(t *testing.T) {
 
 	for _, tc := range tests {
 		bs := tc.build()
-		got := bs.LatestDiff()
+		got := bs.LatestDiff(dataset)
 		// compute expected
 		var want *Backup
 		for _, b := range bs {
-			if b.Type != BackupTypeDiff {
+			if b.Type != BackupTypeDiff || b.Dataset != dataset {
 				continue
 			}
 			if want == nil || want.CreatedAt.Before(b.CreatedAt) {
@@ -743,10 +745,11 @@ func TestLatestIncr(t *testing.T) {
 	now := time.Now()
 	earlier := now.Add(-3 * time.Hour)
 	later := now.Add(-5 * time.Minute)
+	dataset := "tank/app"
 
 	mk := func(tp BackupType, ts time.Time) (*Backup, ulid.ULID) {
 		id := ulid.Make()
-		return &Backup{ID: id, Type: tp, CreatedAt: ts}, id
+		return &Backup{ID: id, Type: tp, CreatedAt: ts, Dataset: dataset}, id
 	}
 
 	tests := []struct {
@@ -782,11 +785,11 @@ func TestLatestIncr(t *testing.T) {
 
 	for _, tc := range tests {
 		bs := tc.build()
-		got := bs.LatestIncr()
+		got := bs.LatestIncr(dataset)
 		// compute expected
 		var want *Backup
 		for _, b := range bs {
-			if b.Type != BackupTypeIncr {
+			if b.Type != BackupTypeIncr || b.Dataset != dataset {
 				continue
 			}
 			if want == nil || want.CreatedAt.Before(b.CreatedAt) {
