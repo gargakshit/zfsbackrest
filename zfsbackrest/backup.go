@@ -20,6 +20,7 @@ const (
 	BackupStateInitial               BackupState = "initial"
 	BackupStateGotParent             BackupState = "got_parent"
 	BackupStateCreatedSnapshot       BackupState = "created_snapshot"
+	BackupStateHeldSnapshot          BackupState = "held_snapshot"
 	BackupStateCreatedBackupManifest BackupState = "created_backup_manifest"
 	BackupStateAddedOrphan           BackupState = "added_orphan"
 	BackupStateUploadedSnapshot      BackupState = "uploaded_snapshot"
@@ -64,11 +65,12 @@ func (r *Runner) BackupConcurrent(
 	// We run everything sequentially, other than uploads, which are concurrent.
 	slog.Debug("Running backup FSMs sequentially",
 		"datasets", datasets,
-		"actions", []BackupAction{"get_parent", "create_snapshot", "create_backup_manifest", "add_orphan"})
+		"actions", []BackupAction{"get_parent", "create_snapshot", "hold_snapshot", "create_backup_manifest", "add_orphan"})
 	for _, fsm := range fsms {
 		err := fsm.RunSequence(ctx,
 			"get_parent",
 			"create_snapshot",
+			"hold_snapshot",
 			"create_backup_manifest",
 			"add_orphan",
 		)
@@ -210,8 +212,22 @@ func (r *Runner) createBackupFSM(ctx context.Context, typ repository.BackupType,
 					return nil
 				},
 			},
-			"create_backup_manifest": {
+			"hold_snapshot": {
 				From: BackupStateCreatedSnapshot,
+				To:   BackupStateHeldSnapshot,
+				Run: func(ctx context.Context, data *BackupFSMData) error {
+					slog.Debug("Holding snapshot", "dataset", data.Dataset)
+					err := r.ZFS.HoldSnapshot(ctx, data.Dataset, data.BackupID)
+					if err != nil {
+						slog.Error("Failed to hold snapshot", "error", err)
+						return fmt.Errorf("failed to hold snapshot: %w", err)
+					}
+
+					return nil
+				},
+			},
+			"create_backup_manifest": {
+				From: BackupStateHeldSnapshot,
 				To:   BackupStateCreatedBackupManifest,
 				Run: func(ctx context.Context, data *BackupFSMData) error {
 					slog.Debug("Creating backup manifest", "dataset", data.Dataset)

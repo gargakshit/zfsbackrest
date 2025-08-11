@@ -56,3 +56,29 @@ func (z *ZFS) SnapshotExists(ctx context.Context, dataset string, id ulid.ULID) 
 	slog.Debug("ZFS snapshot exists", "dataset", dataset, "id", id, "stdout", string(stdout))
 	return true, nil
 }
+
+const holdTag = "zfsbackrest-hold"
+
+func (z *ZFS) HoldSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "hold", holdTag, snapshotName(dataset, id))
+	if err != nil {
+		slog.Error("Failed to hold ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
+		return fmt.Errorf("failed to hold ZFS snapshot: %w", err)
+	}
+
+	slog.Debug("ZFS snapshot held", "dataset", dataset, "id", id, "stdout", string(stdout))
+
+	return nil
+}
+
+func (z *ZFS) ReleaseSnapshot(ctx context.Context, dataset string, id ulid.ULID) error {
+	stdout, err := runZFSCmdWithStdoutCapture(ctx, false, "release", holdTag, snapshotName(dataset, id))
+	if err != nil {
+		slog.Error("Failed to release ZFS snapshot", "dataset", dataset, "id", id, "error", err, "stdout", string(stdout))
+		return fmt.Errorf("failed to release ZFS snapshot: %w", err)
+	}
+
+	slog.Debug("ZFS snapshot released", "dataset", dataset, "id", id, "stdout", string(stdout))
+
+	return nil
+}
