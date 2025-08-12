@@ -12,7 +12,7 @@ import (
 var cleanupOrphans bool
 var cleanupExpired bool
 
-// optionsk
+// options
 var cleanupDryRun bool
 var cleanupSkipPrerequisitesVerification bool
 var cleanupSkipOrphaning bool

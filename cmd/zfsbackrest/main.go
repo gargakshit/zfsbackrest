@@ -53,6 +53,12 @@ func init() {
 }
 
 func main() {
+	// Check if the user is root
+	if os.Getuid() != 0 {
+		slog.Error("zfsbackrest must be run as root", "user", os.Getuid())
+		os.Exit(1)
+	}
+
 	// Acquire a global process lock to ensure only one instance runs on this system.
 	slog.Debug("Acquiring global process lock")
 	lock, err := glock.Acquire("zfsbackrest")

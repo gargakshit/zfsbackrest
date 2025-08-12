@@ -95,10 +95,10 @@ func (s *S3StrongStorage) OpenSnapshotWriteStream(
 		// buffers in memory at once. Also choose a smaller part size to limit
 		// the single in-memory buffer used by the MinIO client.
 		_, err := s.mc.PutObject(ctx, s.s3Config.Bucket, filePath, pr, size, minio.PutObjectOptions{
-			ContentType:           "application/octet-stream",
-			ConcurrentStreamParts: false,
-			NumThreads:            1,
-			PartSize:              64 * 1024 * 1024,
+			ContentType: "application/octet-stream",
+			// ConcurrentStreamParts: false,
+			NumThreads: 4,
+			PartSize:   96 * 1024 * 1024,
 		})
 		if err != nil {
 			slog.Error("Failed to upload snapshot", "path", filePath, "error", err)

@@ -106,6 +106,25 @@ zfsbackrest restore -i <path-to-age-identity-file> \
   -d <name of the dataset to restore to> # Restoring to a dataset that already exists on your local FS will fail.
 ```
 
+## Safety
+
+`zfsbackrest` doesn't write or modify actual `zfs` datasets. It makes extensive
+use of snapshots. List of `zfs` operations used by `zfsbackrest` are
+
+- `backup`
+
+  - `zfs snapshot` - Creating a `zfs` snapshot for `zfsbackrest`
+  - `zfs hold` - Creating a reference to that snapshot to prevent removal
+  - `zfs send` - Sending the snapshot incrementally
+
+- `cleanup` / `force-destroy`
+
+  - `zfs release` - Release the held snapshot
+  - `zfs destroy` - Destroy the snapshot
+
+- `restore`
+  - `zfs recv` - Receiving the remote snapshot
+
 ## Model
 
 TODO

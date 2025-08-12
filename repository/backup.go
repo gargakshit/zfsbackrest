@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"time"
 
 	"github.com/gargakshit/zfsbackrest/config"
@@ -312,6 +313,39 @@ func (bs Backups) GetChildren(id ulid.ULID) Backups {
 			children[b.ID] = b
 		}
 	}
+
+	slog.Debug("Found children", "children", len(children))
+
+	return children
+}
+
+func (bs Backups) GetAllChildren(id ulid.ULID) Backups {
+	slog.Debug("Getting all children of backup", "backup", id)
+
+	// Check if backup exists in the first place.
+	if _, ok := bs[id]; !ok {
+		slog.Error("Backup not found", "backup", id)
+		return nil
+	}
+
+	// Short circuit for incrementals.
+	if bs[id].Type == BackupTypeIncr {
+		slog.Debug("Skipping children for incremental backup", "backup", id)
+		return nil
+	}
+
+	children := make(Backups)
+	for _, b := range bs {
+		if b.DependsOn != nil && *b.DependsOn == id {
+			children[b.ID] = b
+		}
+	}
+
+	for _, child := range children {
+		maps.Copy(children, bs.GetAllChildren(child.ID))
+	}
+
+	slog.Debug("Found children", "children", len(children))
 
 	return children
 }
