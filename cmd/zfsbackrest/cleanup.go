@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/gargakshit/zfsbackrest/util"
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
 	"github.com/spf13/cobra"
 )
@@ -19,10 +20,29 @@ var cleanupSkipOrphaning bool
 var cleanupSkipLocalSnapshotRemoval bool
 var cleanupSkipRemoteSnapshotRemoval bool
 
+var cleanupGuard *util.CommandGuard
+
 var cleanupCmd = &cobra.Command{
 	Use:   "cleanup",
 	Short: "Cleanup backups",
 	Long:  `Cleanup backups.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		cleanupGuard, err = util.NewCommandGuard(util.CommandGuardOpts{
+			NeedsRoot:       true,
+			NeedsGlobalLock: true,
+		})
+		if err != nil {
+			slog.Error("Failed to initialize command guard", "error", err)
+			return fmt.Errorf("failed to initialize command guard: %w", err)
+		}
+
+		return nil
+	},
+	PostRunE: func(cmd *cobra.Command, args []string) error {
+		slog.Debug("Running post-run hook")
+		return cleanupGuard.OnExit()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slog.Debug("Cleanup command", "dry-run", cleanupDryRun, "orphans", cleanupOrphans)
 

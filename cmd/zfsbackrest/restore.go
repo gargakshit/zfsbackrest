@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gargakshit/zfsbackrest/encryption"
+	"github.com/gargakshit/zfsbackrest/util"
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/cobra"
@@ -16,10 +17,29 @@ var restoreDataset string
 var restoreBackupID string
 var restoreDatasetTo string
 
+var restoreGuard *util.CommandGuard
+
 var restoreCmd = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore a backup to a dataset",
 	Long:  `Restore a backup to a dataset.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		restoreGuard, err = util.NewCommandGuard(util.CommandGuardOpts{
+			NeedsRoot:       true,
+			NeedsGlobalLock: true,
+		})
+		if err != nil {
+			slog.Error("Failed to initialize command guard", "error", err)
+			return fmt.Errorf("failed to initialize command guard: %w", err)
+		}
+
+		return nil
+	},
+	PostRunE: func(cmd *cobra.Command, args []string) error {
+		slog.Debug("Running post-run hook")
+		return restoreGuard.OnExit()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slog.Debug("Restoring backup",
 			"age-identity-file", ageIdentityFile,

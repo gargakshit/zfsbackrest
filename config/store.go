@@ -6,4 +6,7 @@ type S3Store struct {
 	Key      string `mapstructure:"key"`
 	Secret   string `mapstructure:"secret"`
 	Region   string `mapstructure:"region"`
+
+	PartSize      uint64 `mapstructure:"part_size"`
+	UploadThreads uint   `mapstructure:"upload_threads"`
 }

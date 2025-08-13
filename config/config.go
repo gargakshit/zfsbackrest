@@ -20,6 +20,10 @@ func LoadConfig(v *viper.Viper, path string) (*Config, error) {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
+	// Defaults.
+	v.SetDefault("repository.s3.part_size", 128*1024*1024)
+	v.SetDefault("repository.s3.upload_threads", 1)
+
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err
 	}

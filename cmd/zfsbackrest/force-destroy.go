@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/gargakshit/zfsbackrest/util"
 	"github.com/gargakshit/zfsbackrest/zfsbackrest"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/cobra"
@@ -19,12 +20,31 @@ var forceDestroySkipOrphaning bool
 var forceDestroySkipLocalSnapshotRemoval bool
 var forceDestroySkipRemoteSnapshotRemoval bool
 
+var forceDestroyGuard *util.CommandGuard
+
 var forceDestroyCmd = &cobra.Command{
 	Use:   "force-destroy",
 	Short: "Force destroy a snapshot",
 	Long: `Force destroy a snapshot. This is a dangerous operation and should only be used
 if you know what you are doing. It will destroy the snapshot and all of its
 children. Any options must be used with extreme caution.`,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		forceDestroyGuard, err = util.NewCommandGuard(util.CommandGuardOpts{
+			NeedsRoot:       true,
+			NeedsGlobalLock: true,
+		})
+		if err != nil {
+			slog.Error("Failed to initialize command guard", "error", err)
+			return fmt.Errorf("failed to initialize command guard: %w", err)
+		}
+
+		return nil
+	},
+	PostRunE: func(cmd *cobra.Command, args []string) error {
+		slog.Debug("Running post-run hook")
+		return forceDestroyGuard.OnExit()
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slog.Debug(
 			"Starting a force destroy",
