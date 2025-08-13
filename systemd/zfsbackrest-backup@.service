@@ -1,0 +1,12 @@
+[Unit]
+Description=Perform a zfsbackrest backup
+Wants=network-online.target zfs.target zfs-volumes.target
+After=network-online.target zfs.target zfs-volumes.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/zfsbackrest backup --type %i
+
+[Install]
+WantedBy=multi-user.target
