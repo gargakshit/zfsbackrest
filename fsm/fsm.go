@@ -54,6 +54,9 @@ func NewFSM[StateT comparable, ActionT comparable, DataT any](
 }
 
 func (f *FSM[StateT, ActionT, DataT]) Run(ctx context.Context, action ActionT) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	slog.Debug("Acquiring FSM lock", "name", f.name)
 	f.lock.Lock()
 	defer f.lock.Unlock()

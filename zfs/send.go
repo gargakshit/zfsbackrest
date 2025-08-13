@@ -25,6 +25,8 @@ func (z *ZFS) SendSnapshot(
 	writeStream io.WriteCloser,
 ) (int64, error) {
 	slog.Debug("Sending snapshot", "dataset", dataset, "id", id, "from", from)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	snap := snapshotName(dataset, id)
 
