@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gargakshit/zfsbackrest/fsm"
+	"github.com/gargakshit/zfsbackrest/internal/util"
 	"github.com/gargakshit/zfsbackrest/repository"
-	"github.com/gargakshit/zfsbackrest/util"
 	"github.com/gargakshit/zfsbackrest/zfs"
 	"github.com/oklog/ulid/v2"
 )

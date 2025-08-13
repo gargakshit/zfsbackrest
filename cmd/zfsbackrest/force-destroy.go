@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/gargakshit/zfsbackrest/util"
-	"github.com/gargakshit/zfsbackrest/zfsbackrest"
+	"github.com/gargakshit/zfsbackrest/internal/util"
+	"github.com/gargakshit/zfsbackrest/internal/zfsbackrest"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/cobra"
 )

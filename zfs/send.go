@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gargakshit/zfsbackrest/util"
+	"github.com/gargakshit/zfsbackrest/internal/util"
 	"github.com/oklog/ulid/v2"
 )
 
