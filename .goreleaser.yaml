@@ -36,6 +36,7 @@ nfpms:
     bindir: /usr/local/bin
     formats:
       - deb
+      - rpm
     contents:
       - src: systemd/zfsbackrest-backup@.service
         dst: /etc/systemd/system/zfsbackrest-backup@.service
