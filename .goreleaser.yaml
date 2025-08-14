@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/zfsbackrest
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    gcflags:
+      - -trimpath
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64 {{-
+      else if eq .Arch "386" }}i386 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm
+      }}v{{ .Arm }}{{ end }}
+
+nfpms:
+  - id: zfsbackrest
+    package_name: zfsbackrest
+    file_name_template: "{{ .ConventionalFileName }}"
+    vendor: Akshit Garg
+    homepage: https://github.com/gargakshit/zfsbackrest
+    maintainer: Akshit Garg <zfsbackrest@akshit.network>
+    description: ZFS Backup and Restore Tool
+    license: MIT
+    bindir: /usr/local/bin
+    formats:
+      - deb
+    contents:
+      - src: systemd/zfsbackrest-backup@.service
+        dst: /etc/systemd/system/zfsbackrest-backup@.service
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

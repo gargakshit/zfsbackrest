@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/gargakshit/zfsbackrest/config"
@@ -10,13 +11,18 @@ import (
 
 var configFile string
 var cfg *config.Config
-var version = "0.1.0"
+
+var (
+	version = "0.1.0"
+	commit  = "unknown"
+	date    = "unknown"
+)
 
 var rootCmd = &cobra.Command{
 	Use:     "zfsbackrest",
 	Short:   "ZFS Backup and Restore Tool",
 	Long:    `zfsbackrest is a tool for backing up and restoring ZFS filesystems.`,
-	Version: version,
+	Version: fmt.Sprintf("%s+%s %s", version, commit, date),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		v := viper.New()
 		var err error
