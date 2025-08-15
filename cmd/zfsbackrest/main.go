@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gargakshit/zfsbackrest/config"
 	"github.com/spf13/cobra"
@@ -28,6 +32,7 @@ var rootCmd = &cobra.Command{
 		var err error
 		cfg, err = config.LoadConfig(v, configFile)
 		if err != nil {
+			slog.Error("Failed to load config", "error", err)
 			return err
 		}
 
@@ -56,6 +61,31 @@ func init() {
 	)
 }
 
+var softExit = false
+
 func main() {
-	rootCmd.Execute()
+	setSlog(slog.LevelInfo) // set the log level to info by default
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		for range signals {
+			if !softExit {
+				slog.Warn("Received signal to terminate, will exit after the current operation. Use Ctrl+C again to force exit.")
+				softExit = true
+			} else {
+				slog.Error("Force exiting. You may have unfinished operations.")
+				cancel()
+				os.Exit(1)
+			}
+		}
+	}()
+
+	if err := rootCmd.ExecuteContext(ctx); err != nil {
+		os.Exit(1)
+	}
 }
