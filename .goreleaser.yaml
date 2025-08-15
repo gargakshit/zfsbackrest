@@ -40,6 +40,8 @@ nfpms:
     contents:
       - src: systemd/zfsbackrest-backup@.service
         dst: /etc/systemd/system/zfsbackrest-backup@.service
+      - src: zfsbackrest.example.toml
+        dst: /etc/zfsbackrest.example.toml
 
 changelog:
   sort: asc
