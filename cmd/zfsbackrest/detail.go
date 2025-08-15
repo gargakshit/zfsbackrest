@@ -21,9 +21,10 @@ import (
 
 var jsonDetail bool
 var detailCmd = &cobra.Command{
-	Use:   "detail",
-	Short: "Show details about a backup repository",
-	Long:  `Show details about a backup repository.`,
+	Use:     "detail",
+	Short:   "Show details about a backup repository",
+	Long:    `Show details about a backup repository.`,
+	Aliases: []string{"info", "status"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		slog.Debug("Showing details about backup repository")
 
