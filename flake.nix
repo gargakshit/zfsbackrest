@@ -78,7 +78,7 @@
             vendorHash = "sha256-7vtRH5ookHyEPKiI/4Dz9AZk0vfxQWbQExL8MQSZVJE=";
 
             meta = {
-              description = "A backup tool for ZFS";
+              description = "pgbackrest style encrypted backups for ZFS filesystems";
               homepage = "https://github.com/zfsbackrest/zfsbackrest";
               license = pkgs.lib.licenses.mit;
             };
