@@ -75,7 +75,7 @@
               "cmd/zfsbackrest"
             ];
             
-            vendorHash = "sha256-YbUlMvunqCxygh86lL2p31HbfBGnRn6HJHiob91nRAI=";
+            vendorHash = "sha256-7vtRH5ookHyEPKiI/4Dz9AZk0vfxQWbQExL8MQSZVJE=";
 
             meta = {
               description = "A backup tool for ZFS";
