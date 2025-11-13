@@ -61,7 +61,7 @@
         {
           default = pkgs.buildGoModule (finalAttrs: {
             pname = "zfsbackrest";
-            version = "0.1.0";
+            version = "0.2.0";
             src = ./.;
             env.CGO_ENABLED = 0;
             
