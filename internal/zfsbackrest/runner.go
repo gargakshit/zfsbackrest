@@ -62,7 +62,7 @@ func NewRunnerFromExistingRepository(ctx context.Context, config *config.Config)
 		fmt.Printf("  %s remove\n", red.Sprint("-"))
 		fmt.Printf("  %s add\n\n", green.Sprint("+"))
 
-		fmt.Println("zfsbackterm will perform the following actions:")
+		fmt.Println("zfsbackrest will perform the following actions:")
 
 		for _, r := range diff.Removed {
 			red.Printf("  - %s\n", r)
