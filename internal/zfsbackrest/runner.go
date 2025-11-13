@@ -2,15 +2,20 @@ package zfsbackrest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gargakshit/zfsbackrest/config"
 	"github.com/gargakshit/zfsbackrest/encryption"
 	"github.com/gargakshit/zfsbackrest/repository"
 	"github.com/gargakshit/zfsbackrest/storage"
 	"github.com/gargakshit/zfsbackrest/zfs"
+	"github.com/manifoldco/promptui"
 )
 
 type Runner struct {
@@ -40,6 +45,69 @@ func NewRunnerFromExistingRepository(ctx context.Context, config *config.Config)
 	if err != nil {
 		slog.Error("Failed to load store content", "error", err)
 		return nil, fmt.Errorf("failed to load store content: %w", err)
+	}
+	
+	cfgDatasets, err := zfs.ListDatasetsWithGlobs(ctx, config.Repository.IncludedDatasets...)
+	if err != nil {
+		slog.Error("Failed to get managed datasets", "error", err)
+		return nil, fmt.Errorf("failed to get managed datasets: %w", err)
+	}
+	
+	if diff := diffManagedDatasets(store.ManagedDatasets, cfgDatasets); diff != nil {
+		fmt.Printf("%s! Included datasets have changed. ", color.HiRedString("WARNING"))
+		red := color.New(color.FgRed)
+		green := color.New(color.FgGreen)
+		
+		fmt.Println("Dataset actions are indicated with the following symbols:")
+		fmt.Printf("  %s remove\n", red.Sprint("-"))
+		fmt.Printf("  %s add\n\n", green.Sprint("+"))
+		
+		fmt.Println("zfsbackterm will perform the following actions:")
+		
+		for _, r := range diff.Removed {
+			red.Printf("  - %s\n", r)
+		}
+		
+		for _, a := range diff.Added {
+			green.Printf("  + %s\n", a)
+		}
+		
+		fmt.Println(color.New(color.Bold).Sprintf("\nPlan: %s", color.New(color.Faint).Sprintf("%d to add, %d to remove.\n", len(diff.Added), len(diff.Removed))))
+		
+		prompt := promptui.Prompt {
+			Label: "Accept Changes",
+			IsConfirm: true,
+			Default: "n",
+		}
+		
+		res, err := prompt.Run()
+		if err != nil && !errors.Is(err, promptui.ErrAbort) {
+			return nil, fmt.Errorf("failed to accept changes: %w", err)
+		}
+		
+		if strings.ToLower(res) == "y" {
+			store.ManagedDatasets = cfgDatasets
+			if err := store.Save(ctx, storage); err != nil {
+				slog.Error("Failed to save store content", "error", err)
+				return nil, fmt.Errorf("failed to save store content: %w", err)
+			}
+		} else if errors.Is(err, promptui.ErrAbort) {
+			fmt.Println("Changes rejected.")
+			prompt = promptui.Prompt{
+				Label: "Continue backup with current configuration",
+				IsConfirm: true,
+				Default: "y",
+			}
+			_, err := prompt.Run()
+			if err != nil && !errors.Is(err, promptui.ErrAbort) {
+				return nil, fmt.Errorf("failed to proceed with current configuration: %w", err)
+			}
+			
+			if errors.Is(err, promptui.ErrAbort) {
+				fmt.Println("Backup aborted. Exiting...")
+				os.Exit(0)
+			}
+		}
 	}
 
 	encryption, err := encryption.NewAge(&store.Encryption.Age)
