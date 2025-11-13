@@ -52,6 +52,12 @@ type Store struct {
 	Orphans         Orphans           `json:"orphans"`
 	Encryption      config.Encryption `json:"encryption"`
 	ManagedDatasets []string          `json:"managed_datasets"`
+	Hash            *string           `json:"hash"`
+}
+
+type DatasetDiff struct {
+	Added    []string `json:"added"`
+	Removed  []string `json:"removed"`
 }
 
 func LoadStore(ctx context.Context, storage storage.StrongStore) (*Store, error) {
@@ -135,4 +141,38 @@ func (s *Store) Validate() error {
 	}
 
 	return nil
+}
+
+func (s *Store) DiffManagedDatasets(cfgDatasets []string) *DatasetDiff {
+	managed := make(map[string]struct{})
+	cfg := make(map[string]struct{})
+	for _, dataset := range s.ManagedDatasets {
+		managed[dataset] = struct{}{}
+	}
+	for _, dataset := range cfgDatasets {
+		cfg[dataset] = struct{}{}
+	}
+	
+	var added, removed []string
+	for dataset := range managed {
+		if _, ok := cfg[dataset]; !ok {
+			removed = append(removed, dataset)
+		}
+	}
+	for dataset := range cfg {
+		if _, ok := managed[dataset]; !ok {
+			added = append(added, dataset)
+		}
+	}
+	
+	var diff *DatasetDiff
+	
+	if len(added) > 0 || len(removed) > 0 {
+		diff = &DatasetDiff{
+			Added:    added,
+			Removed:  removed,
+		}
+	}
+
+	return diff
 }
