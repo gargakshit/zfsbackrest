@@ -1,8 +1,8 @@
 package zfsbackrest
 
 type Diff struct {
-	Added    []string `json:"added"`
-	Removed  []string `json:"removed"`
+	Added   []string `json:"added"`
+	Removed []string `json:"removed"`
 }
 
 func diffManagedDatasets(old, new []string) *Diff {
@@ -14,7 +14,7 @@ func diffManagedDatasets(old, new []string) *Diff {
 	for _, dataset := range new {
 		n[dataset] = struct{}{}
 	}
-	
+
 	var added, removed []string
 	for dataset := range o {
 		if _, ok := n[dataset]; !ok {
@@ -26,13 +26,13 @@ func diffManagedDatasets(old, new []string) *Diff {
 			added = append(added, dataset)
 		}
 	}
-	
+
 	var diff *Diff
-	
+
 	if len(added) > 0 || len(removed) > 0 {
 		diff = &Diff{
-			Added:    added,
-			Removed:  removed,
+			Added:   added,
+			Removed: removed,
 		}
 	}
 
