@@ -1,3 +1,7 @@
 build/
 zfsbackrest.toml
 dist/
+
+# automatically use flake
+.envrc
+.direnv
