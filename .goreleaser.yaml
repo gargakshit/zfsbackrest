@@ -17,8 +17,18 @@ builds:
     gcflags:
       - -trimpath
 
+source:
+  enabled: true
+  format: "tar.gz"
+
 archives:
   - formats: [tar.gz]
+    files:
+      - systemd/*
+      - scripts/*
+      - README.md
+      - LICENSE
+      - zfsbackrest.example.toml
     name_template: >-
       {{ .ProjectName }}_ {{- title .Os }}_ {{- if eq .Arch "amd64" }}x86_64 {{-
       else if eq .Arch "386" }}i386 {{- else }}{{ .Arch }}{{ end }} {{- if .Arm
@@ -42,6 +52,97 @@ nfpms:
         dst: /etc/systemd/system/zfsbackrest-backup@.service
       - src: zfsbackrest.example.toml
         dst: /etc/zfsbackrest.example.toml
+
+aurs:
+  - name: zfsbackrest-bin
+    homepage: https://github.com/gargakshit/zfsbackrest
+    description: ZFS Backup and Restore Tool
+    maintainers:
+      - 'SphericalKat <contact@kat.bio>'
+      - 'Akshit Garg <zfsbackrest@akshit.network>'
+    license: MIT
+    # git_url: https://aur.archlinux.org/zfsbackrest-bin.git
+    install: ./scripts/install.sh
+    # private_key: "{{ .Env.AUR_KEY }}"
+    depends:
+      - zfs-utils
+      - libunwind
+    optdepends:
+      - "age: for generating encryption keys"
+    backup:
+      - etc/zfsbackrest.toml
+    package: |
+      # bin
+      install -Dm755 "./zfsbackrest" "${pkgdir}/usr/bin/zfsbackrest"
+
+      # license/docs
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/zfsbackrest/LICENSE"
+
+      mkdir -p "${pkgdir}/usr/share/doc/zfsbackrest"
+      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/zfsbackrest/README"
+
+      # config
+      install -Dm644 "./zfsbackrest.example.toml" "${pkgdir}/etc/zfsbackrest.example.toml"
+
+      # systemd
+      install -Dm644 "./systemd/zfsbackrest-backup@.service" "${pkgdir}/etc/systemd/system/zfsbackrest-backup@.service"
+
+      # completions
+      mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
+      mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
+      mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
+
+      ./zfsbackrest completions bash > "${pkgdir}/usr/share/bash-completion/completions/zfsbackrest"
+      ./zfsbackrest completions zsh > "${pkgdir}/usr/share/zsh/site-functions/_zfsbackrest"
+      ./zfsbackrest completions fish > "${pkgdir}/usr/share/fish/vendor_completions.d/zfsbackrest.fish"
+
+aur_sources:
+  - name: zfsbackrest
+    homepage: https://github.com/gargakshit/zfsbackrest
+    description: ZFS Backup and Restore Tool
+    maintainers:
+      - 'SphericalKat <contact@kat.bio>'
+      - 'Akshit Garg <zfsbackrest@akshit.network>'
+    license: MIT
+    # git_url: https://aur.archlinux.org/zfsbackrest.git
+    install: ./scripts/install.sh
+    depends:
+      - zfs-utils
+      - libunwind
+    provides:
+      - zfsbackrest-bin
+    conflicts:
+      - zfsbackrest-bin
+
+    optdepends:
+      - "age: for generating encryption keys"
+    backup:
+      - etc/zfsbackrest.toml
+    
+    prepare: |-
+      cd ${pkgname}_${pkgver}
+      go mod tidy
+
+    build: |-
+      cd ${pkgname}_${pkgver}
+      export CGO_ENABLED=0
+      go build -ldflags "-s -w -X main.version=${pkgver} -X main.commit=${commit} -X main.date=${date}" -o zfsbackrest ./cmd/zfsbackrest
+      chmod +x ./zfsbackrest
+
+    package: |-
+      cd ${pkgname}_${pkgver}
+      install -Dm755 "./zfsbackrest" "${pkgdir}/usr/bin/zfsbackrest"
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/zfsbackrest/LICENSE"
+      mkdir -p "${pkgdir}/usr/share/doc/zfsbackrest"
+      install -Dm644 "./README.md" "${pkgdir}/usr/share/doc/zfsbackrest/README"
+      install -Dm644 "./zfsbackrest.example.toml" "${pkgdir}/etc/zfsbackrest.example.toml"
+      install -Dm644 "./systemd/zfsbackrest-backup@.service" "${pkgdir}/etc/systemd/system/zfsbackrest-backup@.service"
+      mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
+      mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
+      mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
+      ./zfsbackrest completions bash > "${pkgdir}/usr/share/bash-completion/completions/zfsbackrest"
+      ./zfsbackrest completions zsh > "${pkgdir}/usr/share/zsh/site-functions/_zfsbackrest"
+      ./zfsbackrest completions fish > "${pkgdir}/usr/share/fish/vendor_completions.d/zfsbackrest.fish"
 
 changelog:
   sort: asc

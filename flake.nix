@@ -49,6 +49,7 @@
               go
               gopls
               gotools
+              goreleaser
             ];
           };
         }
