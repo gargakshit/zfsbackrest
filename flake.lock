@@ -1,0 +1,65 @@
+{
+  "nodes": {
+    "devshell": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1762521437,
+        "narHash": "sha256-RXN+lcx4DEn3ZS+LqEJSUu/HH+dwGvy0syN7hTo/Chg=",
+        "owner": "numtide",
+        "repo": "devshell",
+        "rev": "07bacc9531f5f4df6657c0a02a806443685f384a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "devshell",
+        "type": "github"
+      }
+    },
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1751685974,
+        "narHash": "sha256-NKw96t+BgHIYzHUjkTK95FqYRVKB8DHpVhefWSz/kTw=",
+        "ref": "refs/heads/main",
+        "rev": "549f2762aebeff29a2e5ece7a7dc0f955281a1d1",
+        "revCount": 92,
+        "type": "git",
+        "url": "https://git.lix.systems/lix-project/flake-compat"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://git.lix.systems/lix-project/flake-compat"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1762844143,
+        "narHash": "sha256-SlybxLZ1/e4T2lb1czEtWVzDCVSTvk9WLwGhmxFmBxI=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "9da7f1cf7f8a6e2a7cb3001b048546c92a8258b4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "devshell": "devshell",
+        "flake-compat": "flake-compat",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -52,6 +52,7 @@ type Store struct {
 	Orphans         Orphans           `json:"orphans"`
 	Encryption      config.Encryption `json:"encryption"`
 	ManagedDatasets []string          `json:"managed_datasets"`
+	Hash            *string           `json:"hash"`
 }
 
 func LoadStore(ctx context.Context, storage storage.StrongStore) (*Store, error) {

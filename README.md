@@ -26,8 +26,9 @@ Create `/etc/zfsbackrest.toml`.
 debug = true # warning, may log sensitive data
 
 [repository]
-# zfsbackrest does not support changing the list of datasets after a repository
-# is initialized YET. That's one feature I need.
+# zfsbackrest supports changing the list of datasets after a repository
+# is initialized. However, it will not delete existing backups for
+# removed datasets in the interest of safety.
 included_datasets = ["storage/*"] # Glob is supported
 
 [repository.s3]
@@ -69,7 +70,7 @@ also huge in size because of that.
 `diff` backups are sent incrementally from the latest `full` backup. They depend
 on the parent `full` backup to be present in the repository to restore.
 
-`incr` backups are send incrementally from the latest `diff` backup. They depend
+`incr` backups are sent incrementally from the latest `diff` backup. They depend
 on the parent `diff` backup to restore.
 
 ### Viewing the repository
